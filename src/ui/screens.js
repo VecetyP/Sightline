@@ -2,6 +2,7 @@
 import './style.css';
 import { save, persist, isBeaten, isUnlocked } from '../game/save.js';
 import { THEMES } from '../game/scene.js';
+import { levelThumbs } from '../game/thumbs.js';
 import { click } from '../game/audio.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -120,16 +121,24 @@ export function createUI(levels, h) {
   $('[data-go="settings"]', ui).addEventListener('click', () => (settingsBack = 'home'), true);
 
   function renderLevels() {
+    const thumbs = levelThumbs(levels), t = THEMES[world];
+    const panel = $('#levels .panel', ui);
+    panel.style.setProperty('--world', t.side);
+    panel.style.setProperty('--world-sky', `linear-gradient(180deg, ${t.sky[0]}, ${t.sky[1]})`);
     $('.tabs', ui).innerHTML = Object.keys(THEMES).map(Number)
-      .map((w) => `<button data-world="${w}" class="${w === world ? 'on' : ''}">${w} · ${THEMES[w].name}</button>`)
+      .map((w) => `<button data-world="${w}" class="${w === world ? 'on' : ''}" style="--dot:${THEMES[w].side}"><i></i>${THEMES[w].name}</button>`)
       .join('');
     $('.cards', ui).innerHTML = levels
       .filter((l) => l.world === world)
       .map((l) => {
         const open = isUnlocked(l.id, levels), done = isBeaten(l.id), best = save.progress[l.id]?.best;
-        const badge = done ? `<span class="badge ${best <= l.par ? 'gold' : ''}">${best <= l.par ? '★ ' : ''}${best} moves${best <= l.par ? ' · perfect' : ''}</span>` : '';
-        return `<button class="card ${open ? '' : 'locked'} ${done ? 'done' : ''}" ${open ? `data-level="${l.id}"` : 'disabled'}>
-          ${badge}<span class="num">${l.id}</span><span class="name">${open ? l.title : `&#128274; Finish level ${l.id - 1}`}</span></button>`;
+        const perfect = done && best <= l.par;
+        const badge = perfect ? '<span class="badge gold" title="Perfect">★</span>' : done ? '<span class="badge" title="Beaten">✓</span>' : '';
+        const note = !open ? `Finish level ${l.id - 1}` : done ? `Best ${best} · par ${l.par}` : 'Not played yet';
+        return `<button class="card ${open ? '' : 'locked'} ${perfect ? 'perfect' : ''}" ${open ? `data-level="${l.id}"` : 'disabled'}>
+          <span class="thumb"><img src="${thumbs.get(l.id)}" alt="">${badge}${open ? '' : '<span class="lock">&#128274;</span>'}</span>
+          <span class="meta"><span class="num">${l.id}</span><span class="name">${open ? l.title : 'Locked'}</span></span>
+          <span class="note">${note}</span></button>`;
       })
       .join('');
   }

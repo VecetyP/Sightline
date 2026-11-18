@@ -108,41 +108,72 @@ button.ghost:hover { background: rgba(255, 255, 255, 0.6); }
 }
 
 /* Level select */
-.tabs { display: flex; gap: 8px; justify-content: center; margin: 8px 0 22px; }
-.tabs button { font-size: 15px; padding: 9px 18px; box-shadow: none; background: rgba(232, 217, 192, 0.6); }
-.tabs button.on { background: var(--sage); }
-.cards { display: grid; grid-template-columns: repeat(4, 140px); gap: 16px; justify-content: center; }
+#levels .panel { --world: var(--sage); --world-sky: linear-gradient(180deg, var(--sky-a), var(--sky-b)); width: min(94vw, 880px); max-width: min(94vw, 880px); }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0 24px; }
+.tabs button { font-size: 15px; padding: 9px 16px; box-shadow: none; background: rgba(232, 217, 192, 0.45); display: inline-flex; align-items: center; gap: 8px; }
+.tabs button i { width: 10px; height: 10px; border-radius: 50%; background: var(--dot); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.12); }
+.tabs button.on { background: var(--dot); box-shadow: 0 4px 12px rgba(91, 74, 63, 0.16); }
+.tabs button.on i { background: #fffaf2; }
+.cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 720px) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .card {
   position: relative;
-  height: 150px;
-  border-radius: 22px;
+  border-radius: 20px;
   background: #fffaf2;
   box-shadow: var(--shadow);
-  padding: 16px;
+  padding: 8px 8px 12px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
+  gap: 8px;
   text-align: left;
   font-size: 15px;
+  border-bottom: 4px solid var(--world);
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
 }
-.card .num { font-size: 40px; font-weight: 800; line-height: 1; }
-.card .name { font-weight: 600; color: var(--cocoa-soft); }
-.card.locked { background: rgba(255, 250, 242, 0.5); box-shadow: none; cursor: default; }
-.card.locked .num { opacity: 0.5; }
+.card:hover { transform: translateY(-4px) rotate(-0.6deg); box-shadow: 0 14px 28px rgba(91, 74, 63, 0.2); }
+.card .thumb { position: relative; aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden; background: var(--world-sky); }
+.card .thumb img { display: block; width: 100%; height: 100%; object-fit: contain; transition: transform 0.4s var(--ease); }
+.card:hover .thumb img { transform: scale(1.08); }
+.card .meta { display: flex; align-items: center; gap: 8px; padding: 0 4px; min-width: 0; }
+.card .num {
+  flex: none;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  font-weight: 800;
+  background: var(--world);
+  color: var(--cocoa);
+}
+.card .name { font-weight: 800; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .note { padding: 0 4px; font-size: 13px; font-weight: 600; color: var(--cocoa-soft); }
+.card.locked { background: rgba(255, 250, 242, 0.6); box-shadow: none; cursor: default; border-bottom-color: var(--sand); }
 .card.locked:hover { transform: none; }
-.card.done { background: #f3f7f1; }
+.card.locked:hover .thumb img { transform: none; }
+.card.locked .thumb img { filter: grayscale(1) blur(3px); opacity: 0.4; }
+.card.locked .num { background: var(--sand); }
+.card.locked .name { color: var(--cocoa-soft); }
+.card .lock { position: absolute; inset: 0; display: grid; place-items: center; font-size: 26px; }
+.card.perfect { border-bottom-color: var(--gold); }
 .badge {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  font-size: 12px;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
   font-weight: 800;
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: var(--sand);
+  background: var(--sage);
+  color: var(--cocoa);
+  box-shadow: 0 2px 6px rgba(91, 74, 63, 0.2);
 }
-.badge.gold { background: var(--gold); color: var(--cocoa); }
+.badge.gold { background: var(--gold); }
 
 /* Settings */
 .row { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 9px 0; font-weight: 600; }
