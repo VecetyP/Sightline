@@ -28,6 +28,8 @@ export function viewBasis(yawDeg) {
 
 const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 export const topCenter = (b) => [b.x + 0.5, b.y + 1, b.z + 0.5];
+// Where the character stands: the middle of the top, or on a stair, the middle of its half-step slab.
+export const standPoint = (b) => (b.slab ? [(b.slab[0] + b.slab[3]) / 2, b.slab[4], (b.slab[2] + b.slab[5]) / 2] : topCenter(b));
 
 // Resolve block positions for a given plate state and pushed-block state.
 // Each block gets a stable id (its index). `pushed` maps a push block's id to [x,y,z], or null once it fell off.

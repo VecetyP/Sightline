@@ -1,7 +1,7 @@
 // The character ("Pip"): a round little figure with a leaf cap and a scarf.
 // Handles visuals and move tweening; the session in main.js owns tile logic and undo history.
 import * as THREE from 'three';
-import { topCenter } from './walkability.js';
+import { standPoint } from './walkability.js';
 import { save } from './save.js';
 
 const MOVE_MS = 180;
@@ -62,7 +62,7 @@ export class Player {
   }
 
   place(block) {
-    const c = topCenter(block);
+    const c = standPoint(block);
     this.root.position.set(c[0], c[1], c[2]);
     this.tween = null;
     this.body.position.y = 0;
@@ -79,11 +79,12 @@ export class Player {
   // Straight 3D lerp: orthographic projection is affine, so on screen this is a normal one-tile
   // step even when the destination is at a different depth. Arrival snaps to the real tile.
   moveTo(block, dir, done) {
-    const c = topCenter(block);
+    const c = standPoint(block);
     this.face(dir);
     const from = this.root.position.clone(), to = new THREE.Vector3(c[0], c[1], c[2]);
-    // A real stair step (one tile over, one up/down) would cut through the higher block's edge; hop over it.
-    const real = Math.abs(to.y - from.y) === 1 && Math.hypot(to.x - from.x, to.z - from.z) === 1;
+    // A real step up or down (onto or off a stair's half-step) would cut through the higher edge; hop over it.
+    const dy = Math.abs(to.y - from.y), flat = Math.hypot(to.x - from.x, to.z - from.z);
+    const real = dy > 0 && dy <= 1 && flat <= 1.3;
     this.tween = { from, to, t: 0, done, hop: real ? 0.55 : 0 };
   }
 
