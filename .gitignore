@@ -5,6 +5,8 @@
 !/package.json
 !/package-lock.json
 !/src/
+!/README.md
+!/docs/
 
 # Stray files inside src
 *.tmp.json
