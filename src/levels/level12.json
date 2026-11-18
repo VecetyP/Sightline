@@ -1,8 +1,8 @@
 {
   "id": 12,
-  "world": 4,
-  "title": "Night Lanterns",
-  "par": 4,
+  "world": 3,
+  "title": "Back Shelves",
+  "par": 15,
   "angles": [
     45,
     135,
@@ -10,12 +10,40 @@
     315
   ],
   "startAngle": 45,
+  "moving": [
+    {
+      "plate": [
+        0,
+        0,
+        2
+      ],
+      "blocks": [
+        [
+          5,
+          0,
+          1
+        ],
+        [
+          5,
+          1,
+          1
+        ]
+      ],
+      "dy": 1
+    }
+  ],
   "blocks": [
-    {"x": 1, "y": 2, "z": 1, "type": "start"},
-    {"x": 1, "y": 2, "z": 0, "type": "solid"},
-    {"x": 2, "y": 2, "z": 0, "type": "solid"},
-    {"x": 2, "y": 3, "z": 0, "type": "lantern"},
-    {"x": 4, "y": 0, "z": -1, "type": "solid"},
-    {"x": 4, "y": 1, "z": 0, "type": "goal"}
+    {"x": 0, "y": 0, "z": 0, "type": "start"},
+    {"x": 1, "y": 0, "z": 0, "type": "solid"},
+    {"x": 2, "y": 0, "z": 0, "type": "solid"},
+    {"x": 3, "y": 0, "z": 0, "type": "solid"},
+    {"x": 1, "y": 0, "z": 1, "type": "solid"},
+    {"x": 0, "y": 0, "z": 2, "type": "plate"},
+    {"x": 1, "y": 1, "z": 0, "type": "push"},
+    {"x": 5, "y": 0, "z": 1, "type": "solid"},
+    {"x": 5, "y": 1, "z": 1, "type": "solid"},
+    {"x": 6, "y": 2, "z": 1, "type": "goal"},
+    {"x": 1, "y": 1, "z": 2, "type": "solid"},
+    {"x": -1, "y": 0, "z": 1, "type": "solid"}
   ]
 }

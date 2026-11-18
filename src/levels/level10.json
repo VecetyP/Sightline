@@ -1,8 +1,8 @@
 {
   "id": 10,
   "world": 3,
-  "title": "The Reading Room",
-  "par": 12,
+  "title": "Rising Stacks",
+  "par": 11,
   "angles": [
     45,
     135,
@@ -15,39 +15,18 @@
       "plate": [
         0,
         0,
-        1
+        2
       ],
       "blocks": [
         [
-          4,
-          1,
-          0
+          5,
+          0,
+          1
         ],
         [
           5,
           1,
-          0
-        ]
-      ],
-      "rotate": {
-        "pivot": [
-          3,
-          0
-        ],
-        "turns": 3
-      }
-    },
-    {
-      "plate": [
-        4,
-        0,
-        -6
-      ],
-      "blocks": [
-        [
-          6,
-          0,
-          -4
+          1
         ]
       ],
       "dy": 1
@@ -55,24 +34,17 @@
   ],
   "blocks": [
     {"x": 0, "y": 0, "z": 0, "type": "start"},
-    {"x": 0, "y": 0, "z": 1, "type": "plate"},
     {"x": 1, "y": 0, "z": 0, "type": "solid"},
-    {"x": 2, "y": 0, "z": 0, "type": "stair"},
+    {"x": 2, "y": 0, "z": 0, "type": "solid"},
     {"x": 3, "y": 0, "z": 0, "type": "solid"},
-    {"x": 3, "y": 1, "z": 0, "type": "solid"},
-    {"x": 4, "y": 1, "z": 0, "type": "solid"},
-    {"x": 5, "y": 1, "z": 0, "type": "solid"},
-    {"x": 4, "y": 0, "z": -4, "type": "solid"},
-    {"x": 4, "y": 0, "z": -5, "type": "solid"},
-    {"x": 4, "y": 0, "z": -6, "type": "plate"},
-    {"x": 4, "y": 1, "z": -6, "type": "push"},
-    {"x": 6, "y": 0, "z": -4, "type": "solid"},
-    {"x": 7, "y": 1, "z": -4, "type": "solid"},
-    {"x": 7, "y": 0, "z": -4, "type": "solid"},
-    {"x": 8, "y": 0, "z": -4, "type": "solid"},
-    {"x": 8, "y": 1, "z": -4, "type": "goal"},
-    {"x": 2, "y": 0, "z": -6, "type": "decor"},
-    {"x": 2, "y": 1, "z": -6, "type": "decor"},
-    {"x": 2, "y": 2, "z": -6, "type": "decor"}
+    {"x": 1, "y": 0, "z": -1, "type": "solid"},
+    {"x": 0, "y": 0, "z": 1, "type": "solid"},
+    {"x": 0, "y": 0, "z": 2, "type": "plate"},
+    {"x": 2, "y": 1, "z": 0, "type": "push"},
+    {"x": 5, "y": 0, "z": 1, "type": "solid"},
+    {"x": 5, "y": 1, "z": 1, "type": "solid"},
+    {"x": 6, "y": 0, "z": 1, "type": "solid"},
+    {"x": 6, "y": 1, "z": 1, "type": "solid"},
+    {"x": 6, "y": 2, "z": 1, "type": "goal"}
   ]
 }

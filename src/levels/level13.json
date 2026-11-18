@@ -1,8 +1,8 @@
 {
   "id": 13,
   "world": 4,
-  "title": "Starlit Steps",
-  "par": 7,
+  "title": "Lantern Hill",
+  "par": 4,
   "angles": [
     45,
     135,
@@ -15,12 +15,7 @@
     {"x": 1, "y": 2, "z": 0, "type": "solid"},
     {"x": 2, "y": 2, "z": 0, "type": "solid"},
     {"x": 2, "y": 3, "z": 0, "type": "lantern"},
-    {"x": 1, "y": 1, "z": -2, "type": "solid"},
-    {"x": 0, "y": 2, "z": -4, "type": "solid"},
-    {"x": 4, "y": -2, "z": -1, "type": "solid"},
-    {"x": 5, "y": -1, "z": -1, "type": "solid"},
-    {"x": 4, "y": 0, "z": 1, "type": "goal"},
-    {"x": 1, "y": 1, "z": 2, "type": "decor"},
-    {"x": 2, "y": 2, "z": -1, "type": "decor"}
+    {"x": 4, "y": 0, "z": 1, "type": "solid"},
+    {"x": 4, "y": 1, "z": 0, "type": "goal"}
   ]
 }

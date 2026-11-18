@@ -1,8 +1,8 @@
 {
   "id": 14,
-  "world": 5,
-  "title": "Block the Sun",
-  "par": 5,
+  "world": 4,
+  "title": "Night Lanterns",
+  "par": 4,
   "angles": [
     45,
     135,
@@ -10,15 +10,12 @@
     315
   ],
   "startAngle": 45,
-  "light": [1, 1, 0],
   "blocks": [
-    {"x": -1, "y": 1, "z": -1, "type": "start"},
-    {"x": 0, "y": 0, "z": 1, "type": "solid"},
-    {"x": 0, "y": 0, "z": 2, "type": "mist"},
-    {"x": 0, "y": 0, "z": 3, "type": "goal"},
-    {"x": 1, "y": 0, "z": 0, "type": "solid"},
-    {"x": 1, "y": 0, "z": 1, "type": "solid"},
-    {"x": 1, "y": 0, "z": 2, "type": "solid"},
-    {"x": 1, "y": 1, "z": 1, "type": "push"}
+    {"x": 1, "y": 2, "z": 1, "type": "start"},
+    {"x": 1, "y": 2, "z": 0, "type": "solid"},
+    {"x": 2, "y": 2, "z": 0, "type": "solid"},
+    {"x": 2, "y": 3, "z": 0, "type": "lantern"},
+    {"x": 4, "y": 0, "z": -1, "type": "solid"},
+    {"x": 4, "y": 1, "z": 0, "type": "goal"}
   ]
 }
