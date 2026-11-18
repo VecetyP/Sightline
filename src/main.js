@@ -19,7 +19,7 @@ const pick = createPicker(world.renderer);
 // --- session state ---
 let level = null, levelIdx = 0, plates = [], pushed = {}, state = null, graph = null, visibility = null;
 let illusionStep = false; // the current move crosses an illusion seam
-let tile = 0, history = [], moves = 0, mode = 'menu', buffered = null, debugOn = false, won = false;
+let tile = 0, history = [], moves = 0, mode = 'menu', buffered = null, debugOn = false, won = false, falling = false;
 let hintsUsed = { turn: false, walk: false };
 
 const ui = createUI(LEVELS, {
@@ -116,6 +116,7 @@ function startLevel(i) {
   history = [];
   moves = 0;
   won = false;
+  falling = false;
   buffered = null;
   ui.hud.setLevel(level);
   ui.hud.setMoves(0, level.par);
@@ -135,6 +136,7 @@ function startLevel(i) {
 function recompute(announce = true) {
   if (!level) return;
   state = buildState(level, plates, pushed);
+  world.setShade(state);
   const yaw = rig.snapped;
   const before = graph;
   if (yaw === null) {
@@ -180,7 +182,7 @@ rig.onRotateInput = () => {
 };
 
 function tryMove(key) {
-  if (mode !== 'play' || won) return;
+  if (mode !== 'play' || won || falling) return;
   if (player.busy || world.animating) { buffered = key; return; }
   const dir = keyDirs(rig.yaw)[key];
   const edge = graph.get(tile)?.find((e) => e.dir[0] === dir[0] && e.dir[1] === dir[1]);
@@ -203,10 +205,11 @@ function tryPushMove(dir) {
   ui.hud.setMoves(moves, level.par);
   pushed[r.id] = r.pos;
   audio.push();
-  world.pushBlock(r.id, r.pos, dir, save.settings.reducedMotion, () => { recompute(false); flush(); }, r.via);
   illusionStep = false;
+  // Pip starts moving first, so an instant push (reduced motion) doesn't check the ground under Pip too early.
   if (r.step !== null) player.moveTo(state.blocks[r.step], dir, () => arrive(r.step));
   else player.bump(dir);
+  world.pushBlock(r.id, r.pos, dir, save.settings.reducedMotion, () => { recompute(false); flush(); }, r.via);
 }
 
 function arrive(to) {
@@ -226,6 +229,14 @@ function arrive(to) {
 }
 
 function flush() {
+  // Shade (world 5) can leave the tile Pip stands on: Pip falls through and the move is taken back.
+  if (!won && !falling && !player.busy && !world.animating && !state.tiles.some((t) => t.id === tile)) {
+    falling = true;
+    buffered = null;
+    audio.bump();
+    player.fall(() => { falling = false; rewind(); });
+    return;
+  }
   const k = buffered;
   buffered = null;
   if (k) tryMove(k);
@@ -241,6 +252,10 @@ function win() {
 
 function undo() {
   if (mode !== 'play' || won || player.busy || world.animating || !history.length) return;
+  rewind();
+}
+
+function rewind() {
   const h = history.pop();
   tile = h.tile;
   h.plates.forEach((on, i) => {

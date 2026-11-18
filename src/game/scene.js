@@ -10,7 +10,32 @@ export const THEMES = {
   2: { name: 'Tea House', side: '#F2C6A8', top: '#EFE3CE', decor: '#D9897E', accent: '#B7CBB0', sky: ['#F7EDE0', '#F2C6A8'] },
   3: { name: 'Cloud Library', side: '#A9BFD1', top: '#ECE7F4', decor: '#B9A7D3', accent: '#F2C6A8', sky: ['#EEF0F5', '#D9D3EA'] },
   4: { name: 'Lantern Hill', side: '#C3B6D6', top: '#F4ECDF', decor: '#8F82A8', accent: '#A9BFD1', sky: ['#ECE6F1', '#CBBFDB'] },
+  5: { name: 'Sun Court', side: '#E2C48F', top: '#F6EEDC', decor: '#B98E66', accent: '#C9A7C7', sky: ['#FBF1DE', '#F3D3A8'] },
 };
+// Mist (world 5): pale and see-through-looking in sunlight, it firms into stone where shade falls on it.
+const MIST = { lit: '#DCE8F2', glow: '#CFE2F5' };
+
+// Soft round white blot for wisps and the sun (made once, on first use).
+let softTex = null;
+function soft() {
+  if (softTex) return softTex;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d'), grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 64, 64);
+  return (softTex = new THREE.CanvasTexture(c));
+}
+
+// A shaft of sunlight from a lit mist top toward the light, fading out along its length.
+const beamMat = () => new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  uniforms: { k: { value: 0 } },
+  vertexShader: 'varying float t; void main() { t = position.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: 'uniform float k; varying float t; void main() { gl_FragColor = vec4(1.0, 0.93, 0.75, k * 0.2 * (1.0 - t) * (1.0 - t)); }',
+});
 
 const baseGeo = new RoundedBoxGeometry(1, 1, 1, 3, 0.08);
 
@@ -86,9 +111,12 @@ export class World {
       const blocker = b.type === 'decor' || b.type === 'push' || b.type === 'lantern';
       // Decor: dark all over (never walkable). Push: dark sides, walkable cream top with arrows.
       // Lantern: a push block with glowing gold sides; it falls onto whatever is drawn below it.
+      const mist = b.type === 'mist';
       const side = b.type === 'lantern' ? LANTERN : blocker ? theme.decor : gi >= 0 ? theme.accent : theme.side;
       const top = b.type === 'decor' ? theme.decor : theme.top;
-      const mesh = new THREE.Mesh(blockGeometry(side, top, rnd(id) * 0.03), mat);
+      const mesh = mist
+        ? new THREE.Mesh(blockGeometry('#E8E8E8', '#FFFFFF', 0), new THREE.MeshLambertMaterial({ vertexColors: true, emissive: MIST.glow }))
+        : new THREE.Mesh(blockGeometry(side, top, rnd(id) * 0.03), mat);
       mesh.castShadow = mesh.receiveShadow = true;
       const parent = gi >= 0 ? this.groups[gi] : this.root;
       mesh.position.set(b.x + 0.5, b.y + 0.5, b.z + 0.5).sub(gi >= 0 ? parent.position : new THREE.Vector3());
@@ -98,7 +126,9 @@ export class World {
       if (b.type === 'plate') this.addPlate(mesh, theme);
       if (b.type === 'stair') this.addStair(mesh, b, state, theme);
       if (blocker) this.addDecor(mesh, theme, b.type !== 'decor', b.type === 'lantern');
+      if (mist) this.addMist(mesh, theme);
     });
+    this.setShade(state, true);
     this.pushAnims = [];
 
     // Fit light + shadow camera to the level.
@@ -112,7 +142,56 @@ export class World {
     sc.far = 80;
     sc.updateProjectionMatrix();
     this.sun.target.position.copy(this.center);
-    this.sun.position.copy(this.center).add(new THREE.Vector3(10, 16, 3));
+    // Shade levels aim the sun along the level's light so the drawn shadows are the walkable ones.
+    const L = level.light ? new THREE.Vector3(...level.light).setLength(20) : new THREE.Vector3(10, 16, 3);
+    this.sun.position.copy(this.center).add(L);
+    this.sun.shadow.intensity = level.light ? 0.85 : 0.35;
+    // The sun itself, off in the light's direction; drawn first so every block covers it.
+    if (level.light) {
+      const sun = new THREE.Sprite(new THREE.SpriteMaterial({ map: soft(), color: '#FFE7B0', depthTest: false, depthWrite: false, transparent: true }));
+      sun.renderOrder = -1;
+      sun.scale.setScalar(3.2);
+      sun.position.copy(this.center).add(new THREE.Vector3(...level.light).setLength(this.radius + 4));
+      this.root.add(sun);
+    }
+  }
+
+  addMist(mesh, theme) {
+    const plane = (mat) => {
+      const q = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), mat);
+      q.rotation.x = -Math.PI / 2;
+      q.position.y = 0.503;
+      mesh.add(q);
+      return q;
+    };
+    const stone = plane(new THREE.MeshLambertMaterial({ color: theme.top, transparent: true, opacity: 0 }));
+    stone.receiveShadow = true;
+    const shimmer = plane(new THREE.MeshBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: 0, depthWrite: false }));
+    // Lit: a sunbeam pours onto it and wisps drift off it. Shaded: plain stone.
+    const beam = new THREE.Mesh(new THREE.BoxGeometry(0.86, 1, 0.86).translate(0, 0.5, 0), beamMat());
+    const dir = new THREE.Vector3(...this.level.light).normalize();
+    beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    beam.scale.set(1, 4, 1);
+    beam.position.y = 0.5;
+    beam.renderOrder = 2;
+    mesh.add(beam);
+    const wisps = [0, 1, 2].map((i) => {
+      const w = new THREE.Sprite(new THREE.SpriteMaterial({ map: soft(), color: '#FFFFFF', transparent: true, depthWrite: false, opacity: 0 }));
+      w.userData.phase = i / 3;
+      mesh.add(w);
+      return w;
+    });
+    mesh.userData.mist = { stone, shimmer, beam, wisps, lit: new THREE.Color(MIST.lit), stoneSide: new THREE.Color(theme.side), k: 0, to: 0 };
+  }
+
+  // Show which mist tops are solid right now (fades unless instant).
+  setShade(state, instant = false) {
+    for (const b of state.blocks) {
+      const m = b.type === 'mist' && this.meshes[b.id]?.userData.mist;
+      if (!m) continue;
+      m.to = b.shaded ? 1 : 0;
+      if (instant) m.k = m.to;
+    }
   }
 
   addGoal(mesh) {
@@ -216,7 +295,7 @@ export class World {
   }
 
   get animating() {
-    return (this.groups || []).some((g) => g.userData.anim) || this.pushAnims?.length > 0;
+    return (this.groups || []).some((g) => g.userData.anim) || (this.pushAnims || []).some((a) => !a.finished);
   }
 
   pressPlate(id, down) {
@@ -292,9 +371,27 @@ export class World {
       a.mesh.position.lerpVectors(a.top, a.end, k);
       if (k < 1) return true;
       if (a.gone) a.mesh.visible = false;
+      a.finished = true; // so `animating` is already false inside done()
       a.done();
       return false;
     });
+    for (const mesh of this.meshes || []) {
+      const m = mesh.userData.mist;
+      if (!m) continue;
+      m.k += Math.sign(m.to - m.k) * Math.min(Math.abs(m.to - m.k), dt / 0.35);
+      const lit = 1 - m.k, seed = mesh.position.x * 1.7 + mesh.position.z;
+      m.stone.material.opacity = m.k;
+      mesh.material.color.copy(m.lit).lerp(m.stoneSide, m.k);
+      mesh.material.emissiveIntensity = 0.45 * lit;
+      m.shimmer.material.opacity = lit * (0.3 + Math.sin(this.time * 1.6 + seed) * 0.2);
+      m.beam.material.uniforms.k.value = lit;
+      for (const w of m.wisps) { // rise, spread and fade, on a loop
+        const t = (this.time * 0.25 + w.userData.phase + seed * 0.13) % 1;
+        w.position.set(Math.sin(t * 6 + seed) * 0.2, 0.55 + t * 0.7, Math.cos(t * 5 + seed) * 0.2);
+        w.scale.setScalar(0.35 + t * 0.5);
+        w.material.opacity = lit * Math.sin(t * Math.PI) * 0.55;
+      }
+    }
     this.glows = this.glows.filter((q) => {
       q.userData.t += dt;
       const t = q.userData.t / 0.9;

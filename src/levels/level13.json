@@ -19,6 +19,7 @@
     {"x": 0, "y": 2, "z": -4, "type": "solid"},
     {"x": 4, "y": -2, "z": -1, "type": "solid"},
     {"x": 5, "y": -1, "z": -1, "type": "solid"},
-    {"x": 4, "y": 0, "z": 1, "type": "goal"}
+    {"x": 4, "y": 0, "z": 1, "type": "goal"},
+    {"x": 1, "y": 1, "z": 2, "type": "decor"}
   ]
 }

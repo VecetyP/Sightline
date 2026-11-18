@@ -33,7 +33,7 @@ export const standPoint = (b) => (b.slab ? [(b.slab[0] + b.slab[3]) / 2, b.slab[
 
 // Resolve block positions for a given plate state and pushed-block state.
 // Each block gets a stable id (its index). `pushed` maps a push block's id to [x,y,z], or null once it fell off.
-export function buildState(level, plates = [], pushed = {}) {
+export function buildState(level, plates = [], pushed = {}, opts = {}) {
   const blocks = level.blocks.map((b, id) => ({ id, x: b.x, y: b.y, z: b.z, type: b.type, base: b }));
   (level.moving || []).forEach((m, i) => {
     if (!plates[i]) return;
@@ -67,8 +67,12 @@ export function buildState(level, plates = [], pushed = {}) {
     const dx = hi.x - b.x, dz = hi.z - b.z;
     b.slab = [b.x + (dx > 0 ? 0.5 : 0), b.y + 1, b.z + (dz > 0 ? 0.5 : 0), b.x + (dx < 0 ? 0.5 : 1), b.y + 1.5, b.z + (dz < 0 ? 0.5 : 1)];
   }
+  // Mist (world 5) only holds where something blocks the level's light: shade is solid ground.
+  // `light` points toward the light; at 45° along a grid axis every shadow covers whole tiles.
+  for (const b of solid) if (b.type === 'mist') b.shaded = !!level.light && isShaded(b, level.light, solid);
+  const walk = tiles.filter((b) => b.type !== 'mist' || (b.shaded && opts.shade !== false));
   const minY = Math.min(...level.blocks.map((b) => b.y));
-  return { blocks, solid, tiles, occupied, minY };
+  return { blocks, solid, tiles: walk, occupied, minY };
 }
 
 export const PUSHABLE = ['push', 'lantern'];
@@ -85,10 +89,11 @@ export function tryPush(state, from, [dx, dz], yawDeg = null) {
   let y = b.y;
   if (state.occupied.has(key(x, y, z))) return null;
   const floor = state.occupied.get(key(from.x + dx, from.y, from.z + dz));
-  const step = floor && floor.type !== 'decor' ? floor.id : null;
+  // ponytail: mist shade is judged before the push; a push that moves the shade itself needs a recheck after.
+  const step = floor && floor.type !== 'decor' && (floor.type !== 'mist' || floor.shaded) ? floor.id : null;
   let pos = null, via = null, missed = false;
   if (state.occupied.has(key(x, y - 1, z))) pos = [x, y, z];
-  else if (yawDeg !== null && b.type === 'lantern') ({ pos, via, missed } = landOnScreen(state, b, [x, y, z], [from, floor], yawDeg, [dx, dz]));
+  else if (yawDeg !== null && b.type === 'lantern') ({ pos, via, missed } = landOnScreen(state, b, [x, y, z], [from, floor], yawDeg));
   if (!pos) { // ordinary gravity
     while (y >= state.minY && !state.occupied.has(key(x, y - 1, z))) y--;
     pos = y < state.minY ? null : [x, y, z];
@@ -99,11 +104,8 @@ export function tryPush(state, from, [dx, dz], yawDeg = null) {
 // Which top is drawn straight below the falling block's base on screen? Tops of any block with nothing on
 // them count (decor too), if they are visible with the falling block itself out of the way. Tops in `skip`
 // (where the character is, or is about to step) can't catch it. Nearest on screen wins; same spot: front-most.
-function landOnScreen(state, b, [x, y, z], skip, yawDeg, [dx, dz]) {
+function landOnScreen(state, b, [x, y, z], skip, yawDeg) {
   const { v, r, u } = viewBasis(yawDeg);
-  // Only when pushed toward the camera: then it falls in front of everything. Pushed away, it would drop behind
-  // whatever it stood on, so it just falls for real.
-  if (dx * v[0] + dz * v[2] <= 0) return { pos: null, via: null, missed: false };
   const solid = state.solid.filter((s) => s !== b);
   const occ = new Set(solid.map((s) => key(s.x, s.y, s.z)));
   const foot = [x + 0.5, y, z + 0.5], fx = dot(foot, r), fy = dot(foot, u);
@@ -112,9 +114,10 @@ function landOnScreen(state, b, [x, y, z], skip, yawDeg, [dx, dz]) {
     if (occ.has(key(t.x, t.y + 1, t.z)) || skip.includes(t)) continue;
     const c = topCenter(t), tx = dot(c, r), ty = dot(c, u);
     if (Math.abs(tx - fx) > STEP_TOL || ty > fy + STEP_TOL) continue;
+    // A top hidden behind a block it will only touch once the lantern sits on it still catches it; the drop
+    // check below decides. `seen` tops are the ones a player reads as "right under it".
     const pts = facePoints(t);
-    if (pts.filter((p) => !rayBlocked(p, v, solid, t)).length / pts.length < VIS_THRESHOLD) continue;
-    cands.push({ t, ty, d: dot(c, v) });
+    cands.push({ t, ty, d: dot(c, v), seen: pts.filter((p) => !rayBlocked(p, v, solid, t)).length / pts.length >= VIS_THRESHOLD });
   }
   // Highest on screen first; same height: front-most. It has to stay in plain view the whole way. Where it was
   // pushed to and the cell right above the landing top (`via`) look identical from this angle, so it swaps
@@ -124,12 +127,14 @@ function landOnScreen(state, b, [x, y, z], skip, yawDeg, [dx, dz]) {
   // ponytail: samples whole-cell steps of the drop; a sliver covered only between two cells would slip through.
   const clear = ({ t, ty }) => {
     if (!inPlainView(solid, [x, y, z], v)) return false;
-    for (let s = 0; s <= height(ty); s++) if (!inPlainView(solid, [t.x, t.y + 1 + s, t.z], v)) return false;
+    // Where it comes to rest only its top must show: nearer blocks may hide its sides, like a block dropped into a slot.
+    for (let s = 0; s <= height(ty); s++) if (!inPlainView(solid, [t.x, t.y + 1 + s, t.z], v, s === 0)) return false;
     return true;
   };
   const hit = cands.find(clear);
   // missed: it fell past a top that looks like it's right under it (a level should never show this).
-  const missed = !!cands.length && cands[0] !== hit;
+  const firstSeen = cands.find((c) => c.seen);
+  const missed = !!firstSeen && cands.indexOf(firstSeen) < (hit ? cands.indexOf(hit) : Infinity);
   if (!hit) return { pos: null, via: null, missed };
   const { t } = hit;
   return { pos: [t.x, t.y + 1, t.z], via: [t.x, t.y + 1 + height(hit.ty), t.z], missed };
@@ -138,8 +143,9 @@ function landOnScreen(state, b, [x, y, z], skip, yawDeg, [dx, dz]) {
 // Is a block at `pos` fully uncovered on screen? Samples its top and camera-facing sides; a block touching a
 // side just hides that face, so it doesn't count as covering it.
 const GRID = [0.15, 0.5, 0.85];
-function inPlainView(solid, [x, y, z], v) {
+function inPlainView(solid, [x, y, z], v, topOnly = false) {
   const faces = [[(a, b) => [x + a, y + 1, z + b], null]];
+  if (topOnly) return GRID.every((a) => GRID.every((b) => !rayBlocked(faces[0][0](a, b), v, solid, null)));
   const sx = Math.sign(v[0]), sz = Math.sign(v[2]);
   if (sx) faces.push([(a, b) => [x + (sx > 0 ? 1 : 0), y + a, z + b], [x + sx, y, z]]);
   if (sz) faces.push([(a, b) => [x + a, y + b, z + (sz > 0 ? 1 : 0)], [x, y, z + sz]]);
@@ -186,6 +192,12 @@ function rayBlocked(p, v, blocks, self) {
     if (b.slab && boxHit(p, v, b.slab)) return true;
   }
   return false;
+}
+
+// A top is in shade when most of its samples have no clear ray to the light.
+function isShaded(b, light, solid) {
+  const pts = facePoints(b);
+  return pts.filter((p) => rayBlocked(p, light, solid, b)).length / pts.length >= 0.5;
 }
 
 // Top-face samples; on a stair, the half under its step slab is sampled on the slab's top.

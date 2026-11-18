@@ -94,6 +94,12 @@ export class Player {
     this.tween = { from: this.root.position.clone(), to: this.root.position.clone(), t: 0, bump: dir };
   }
 
+  // Drop straight down out of the world (the shade under Pip went away).
+  fall(done) {
+    const from = this.root.position.clone();
+    this.tween = { from, to: from.clone().setY(from.y - 6), t: 0, done, ms: 650, fall: true };
+  }
+
   pointW(dir) {
     this.arrow.rotation.y = Math.atan2(dir[0], dir[1]);
   }
@@ -107,8 +113,8 @@ export class Player {
     const reduced = save.settings.reducedMotion;
     if (this.tween) {
       const tw = this.tween;
-      tw.t = Math.min(1, tw.t + (dt * 1000) / MOVE_MS);
-      const k = tw.t;
+      tw.t = Math.min(1, tw.t + (dt * 1000) / (tw.ms || MOVE_MS));
+      const k = tw.fall ? tw.t * tw.t : tw.t;
       this.root.position.lerpVectors(tw.from, tw.to, k);
       if (tw.hop) this.root.position.y += Math.sin(k * Math.PI) * tw.hop;
       if (tw.bump) {
@@ -116,7 +122,7 @@ export class Player {
         this.root.position.x += tw.bump[0] * s;
         this.root.position.z += tw.bump[1] * s;
       }
-      this.body.position.y = reduced ? 0 : Math.sin(k * Math.PI) * 0.18;
+      this.body.position.y = reduced || tw.fall ? 0 : Math.sin(k * Math.PI) * 0.18;
       if (k >= 1) {
         this.tween = null;
         this.body.position.y = 0;
