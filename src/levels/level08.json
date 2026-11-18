@@ -1,0 +1,54 @@
+{
+  "id": 8,
+  "world": 3,
+  "title": "Turning Shelf",
+  "par": 8,
+  "angles": [
+    45,
+    135,
+    225,
+    315
+  ],
+  "startAngle": 45,
+  "moving": [
+    {
+      "plate": [
+        0,
+        0,
+        1
+      ],
+      "blocks": [
+        [
+          4,
+          1,
+          0
+        ],
+        [
+          5,
+          1,
+          0
+        ]
+      ],
+      "rotate": {
+        "pivot": [
+          3,
+          0
+        ],
+        "turns": 1
+      }
+    }
+  ],
+  "blocks": [
+    {"x": 0, "y": 0, "z": 0, "type": "start"},
+    {"x": 0, "y": 0, "z": 1, "type": "plate"},
+    {"x": 2, "y": 0, "z": 0, "type": "stair"},
+    {"x": 1, "y": 0, "z": 0, "type": "solid"},
+    {"x": 3, "y": 1, "z": 0, "type": "solid"},
+    {"x": 4, "y": 1, "z": 0, "type": "solid"},
+    {"x": 5, "y": 1, "z": 0, "type": "solid"},
+    {"x": 3, "y": 0, "z": 0, "type": "solid"},
+    {"x": 4, "y": 0, "z": 4, "type": "solid"},
+    {"x": 4, "y": 0, "z": 5, "type": "solid"},
+    {"x": 4, "y": 0, "z": 6, "type": "goal"}
+  ]
+}

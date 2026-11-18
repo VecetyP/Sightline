@@ -1,0 +1,25 @@
+{
+  "id": 5,
+  "world": 2,
+  "title": "Stepping Stone",
+  "par": 5,
+  "angles": [
+    45,
+    135,
+    225,
+    315
+  ],
+  "startAngle": 45,
+  "blocks": [
+    {"x": 0, "y": 0, "z": 0, "type": "start"},
+    {"x": 1, "y": 0, "z": 0, "type": "solid"},
+    {"x": 2, "y": 0, "z": 0, "type": "solid"},
+    {"x": 1, "y": 0, "z": -1, "type": "solid"},
+    {"x": 2, "y": 0, "z": -1, "type": "solid"},
+    {"x": 4, "y": 0, "z": 0, "type": "solid"},
+    {"x": 6, "y": 0, "z": 1, "type": "solid"},
+    {"x": 3, "y": -1, "z": 0, "type": "decor"},
+    {"x": 2, "y": 1, "z": 0, "type": "push"},
+    {"x": 6, "y": 1, "z": 1, "type": "goal"}
+  ]
+}

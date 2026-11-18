@@ -1,0 +1,13 @@
+# Only what the website needs is tracked; everything else stays local.
+/*
+!/.gitignore
+!/index.html
+!/package.json
+!/package-lock.json
+!/src/
+
+# Stray files inside src
+*.tmp.json
+.DS_Store
+Thumbs.db
+desktop.ini
