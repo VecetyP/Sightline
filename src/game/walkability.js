@@ -117,20 +117,23 @@ function landOnScreen(state, b, [x, y, z], skip, yawDeg) {
     // A top hidden behind a block it will only touch once the lantern sits on it still catches it; the drop
     // check below decides. `seen` tops are the ones a player reads as "right under it".
     const pts = facePoints(t);
-    cands.push({ t, ty, d: dot(c, v), seen: pts.filter((p) => !rayBlocked(p, v, solid, t)).length / pts.length >= VIS_THRESHOLD });
+    cands.push({ t, ty, d: dot(c, v), seen: topSeen(solid, t, v) });
   }
   // Highest on screen first; same height: front-most. It has to stay in plain view the whole way. Where it was
   // pushed to and the cell right above the landing top (`via`) look identical from this angle, so it swaps
   // there unseen and drops straight down that column, which must be uncovered all the way.
-  cands.sort((a, c) => (Math.abs(a.ty - c.ty) > STEP_TOL ? c.ty - a.ty : c.d - a.d));
   const height = (ty) => Math.round((fy - ty) / u[1]);
+  // Nearest in depth catches it: the fewest hidden view-line cells first (k = 0 is a real block straight below),
+  // then the highest on screen. A top far behind or in front of the lantern can't catch it just because it's
+  // drawn higher (L20 report: a top two cells back caught it instead of the block right below).
+  for (const c of cands) c.k = c.t.y + 1 + height(c.ty) - y;
+  cands.sort((a, c) => Math.abs(a.k) - Math.abs(c.k) || (Math.abs(a.ty - c.ty) > STEP_TOL ? c.ty - a.ty : c.d - a.d));
   // ponytail: samples whole-cell steps of the drop; a sliver covered only between two cells would slip through.
   // The swap to `via` moves it k cells along the view line (k > 0: toward the camera). It must go the way it was
   // pushed: pushed away but landing nearer reads as moving backwards (L13 315° report), pushed toward but landing
   // farther reads as poking out from behind whatever is in front (L17 report).
   const toward = (x - b.x) * Math.sign(v[0]) + (z - b.z) * Math.sign(v[2]) > 0;
-  const clear = ({ t, ty }) => {
-    const k = t.y + 1 + height(ty) - y;
+  const clear = ({ t, ty, k }) => {
     if (toward ? k < 0 : k > 0) return false;
     if (!inPlainView(solid, [x, y, z], v)) return false;
     // Where it comes to rest only its top must show: nearer blocks may hide its sides, like a block dropped into a slot.
@@ -157,15 +160,16 @@ function inPlainView(solid, [x, y, z], v, topOnly = false) {
   if (topOnly) {
     // Resting in a slot: the top shows, and each camera-facing side is
     //  'wall': the block touching it is there, or 'open': fully in view, or
-    //  'far':  hidden by a nearer block drawn exactly where a touching block would be (same view line).
-    // A 'far' side next to an 'open' one looks like the lantern pokes out from behind that block (L17 report);
-    // with every side walled the lantern just shows its top, dropped into a notch (L11 at 225°, L12 at 315°).
+    //  'far':  hidden by a nearer block drawn exactly where a touching block would be (same view line), so on
+    //          screen it looks like a touching block. Whether being behind that block makes sense is the
+    //          depth-follows-push rule's job (landOnScreen), not this one.
+    // A side partly hidden by anything else ('bad') looks like it pokes out from behind a block.
     const hidden = (at) => GRID.some((a) => GRID.some((b) => rayBlocked(at(a, b), v, solid, null)));
     if (hidden(faces[0][0])) return false;
     const has = ([cx, cy, cz]) => solid.some((s) => s.x === cx && s.y === cy && s.z === cz);
     const onViewLine = ([cx, cy, cz]) => [1, 2, 3, 4, 5, 6, 7, 8].some((k) => has([cx + k * sx, cy + k, cz + k * sz]));
     const sides = faces.slice(1).map(([at, t]) => (has(t) ? 'wall' : !hidden(at) ? 'open' : onViewLine(t) ? 'far' : 'bad'));
-    return !sides.includes('bad') && !(sides.includes('far') && sides.includes('open'));
+    return !sides.includes('bad');
   }
   for (const [at, touch] of faces) {
     const others = touch ? solid.filter((s) => s.x !== touch[0] || s.y !== touch[1] || s.z !== touch[2]) : solid;
@@ -227,6 +231,12 @@ function facePoints(b) {
     pts.push([x, s && x > s[0] && x < s[3] && z > s[2] && z < s[5] ? s[4] : b.y + 1, z]);
   }
   return pts;
+}
+
+// Does a top read as visible (enough samples with a clear ray to the camera)? `solid` is the blocks that can cover it.
+export function topSeen(solid, t, v) {
+  const pts = facePoints(t);
+  return pts.filter((p) => !rayBlocked(p, v, solid, t)).length / pts.length >= VIS_THRESHOLD;
 }
 
 // Headless visibility: ray-cast each top-face sample toward the camera.
