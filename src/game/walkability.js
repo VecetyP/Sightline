@@ -145,10 +145,17 @@ function landOnScreen(state, b, [x, y, z], skip, yawDeg) {
 const GRID = [0.15, 0.5, 0.85];
 function inPlainView(solid, [x, y, z], v, topOnly = false) {
   const faces = [[(a, b) => [x + a, y + 1, z + b], null]];
-  if (topOnly) return GRID.every((a) => GRID.every((b) => !rayBlocked(faces[0][0](a, b), v, solid, null)));
   const sx = Math.sign(v[0]), sz = Math.sign(v[2]);
   if (sx) faces.push([(a, b) => [x + (sx > 0 ? 1 : 0), y + a, z + b], [x + sx, y, z]]);
   if (sz) faces.push([(a, b) => [x + a, y + b, z + (sz > 0 ? 1 : 0)], [x, y, z + sz]]);
+  if (topOnly) {
+    // Resting in a slot: the top shows, and each side is fully shown or walled in by the block touching it.
+    // A side hidden by a block further off makes the lantern look like it pokes out from behind that block.
+    const hidden = (at, blocks) => GRID.some((a) => GRID.some((b) => rayBlocked(at(a, b), v, blocks, null)));
+    if (hidden(faces[0][0], solid)) return false;
+    return faces.slice(1).every(([at, [tx, ty, tz]]) =>
+      solid.some((s) => s.x === tx && s.y === ty && s.z === tz) || !hidden(at, solid));
+  }
   for (const [at, touch] of faces) {
     const others = touch ? solid.filter((s) => s.x !== touch[0] || s.y !== touch[1] || s.z !== touch[2]) : solid;
     for (const a of GRID) for (const b of GRID) if (rayBlocked(at(a, b), v, others, null)) return false;

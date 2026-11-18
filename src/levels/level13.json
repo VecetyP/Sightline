@@ -20,6 +20,7 @@
     {"x": 4, "y": -2, "z": -1, "type": "solid"},
     {"x": 5, "y": -1, "z": -1, "type": "solid"},
     {"x": 4, "y": 0, "z": 1, "type": "goal"},
-    {"x": 1, "y": 1, "z": 2, "type": "decor"}
+    {"x": 1, "y": 1, "z": 2, "type": "decor"},
+    {"x": 2, "y": 2, "z": -1, "type": "decor"}
   ]
 }
