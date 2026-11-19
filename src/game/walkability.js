@@ -438,6 +438,24 @@ export function computeGraph(state, yawDeg, visibility) {
   return graph;
 }
 
+// Pip's moves from `tile`: the graph's edges, plus one special case. If Pip's own top is hidden (say behind a nearer
+// block) but Pip himself shows, there is clearly ground under him, so a real step (same height, or a real stair) to a
+// neighbour whose top is in view still works (L24 start report). Illusion steps keep the strict rules: there a
+// covered seam is exactly what made a "step" look fake.
+export function edgesFrom(graph, state, yawDeg, visibility, tile) {
+  const list = graph.get(tile) || [];
+  if (yawDeg === null || !visibility) return list;
+  const a = state.blocks[tile], { v } = viewBasis(yawDeg), p = standPoint(a);
+  if (rayBlocked([p[0], p[1] + 0.5, p[2]], v, state.solid, null)) return list; // Pip's head is hidden too
+  const out = [...list];
+  for (const b of state.tiles) {
+    const l = realLink(a, b);
+    if (!l || !visibility.get(b.id) || out.some((e) => e.dir[0] === l.dir[0] && e.dir[1] === l.dir[1])) continue;
+    out.push({ to: b.id, dir: l.dir, illusion: false });
+  }
+  return out;
+}
+
 // Map W/A/S/D to grid directions for the current yaw (screen-relative).
 // Keys are assigned in cyclic order so each gets a distinct direction; a tiny bias breaks
 // the exact isometric tie (W = up-right).

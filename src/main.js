@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { World } from './game/scene.js';
 import { CameraRig } from './game/camera.js';
 import { Player } from './game/player.js';
-import { buildState, computeGraph, createPicker, analyticVisibility, keyDirs, plateIndex, tryPush, hasTurntable, swingWay } from './game/walkability.js';
+import { buildState, computeGraph, createPicker, analyticVisibility, keyDirs, plateIndex, tryPush, hasTurntable, swingWay, edgesFrom } from './game/walkability.js';
 import { save, recordWin, isBeaten } from './game/save.js';
 import * as audio from './game/audio.js';
 import { createUI } from './ui/screens.js';
@@ -242,7 +242,7 @@ function tryMove(key) {
   if (mode !== 'play' || won || falling) return;
   if (player.busy || world.animating || pendingView !== null) { buffered = key; return; }
   const dir = keyDirs(rig.yaw)[key];
-  const edge = graph.get(tile)?.find((e) => e.dir[0] === dir[0] && e.dir[1] === dir[1]);
+  const edge = edgesFrom(graph, state, rig.snapped, visibility, tile).find((e) => e.dir[0] === dir[0] && e.dir[1] === dir[1]);
   if (level.id === 1 && !hintsUsed.walk) { hintsUsed.walk = true; ui.hud.hideHint(1); }
   if (!edge) return tryPushMove(dir);
   history.push({ tile, plates: [...plates], pushed: { ...pushed }, view });
