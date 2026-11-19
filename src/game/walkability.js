@@ -123,7 +123,8 @@ export const PUSHABLE = ['push', 'lantern'];
 // Walking into a push block (at the character's height, one tile over) shoves it one tile.
 // If nothing holds it up it falls. A lantern block with the camera snapped (yawDeg set) falls the way it looks:
 // straight down the screen, onto the first top drawn below it, at whatever depth that top really is.
-// Plain push blocks, and lanterns under a free camera, fall straight down in 3D. Off the world either way when nothing catches it.
+// Plain push blocks, and lanterns under a free camera, fall straight down in 3D, unless (camera snapped) that would
+// look like sinking into a nearer block drawn under it: then they land on that block too. Off the world when nothing catches it.
 // The character steps into the freed spot when there is ground there. Returns null when the push is not possible.
 export function tryPush(state, from, [dx, dz], yawDeg = null) {
   const b = state.occupied.get(key(from.x + dx, from.y + 1, from.z + dz));
@@ -140,8 +141,32 @@ export function tryPush(state, from, [dx, dz], yawDeg = null) {
   if (!pos) { // ordinary gravity
     while (y >= state.minY && !state.occupied.has(key(x, y - 1, z))) y--;
     pos = y < state.minY ? null : [x, y, z];
+    // What you see is real: a fall that would sink behind a nearer block drawn under it lands on that block, the
+    // way a lantern would (L24 report). With nothing honest to land on, the push doesn't happen.
+    if (yawDeg !== null && fallLooksWrong(state, b, [x, b.y, z], pos, yawDeg)) {
+      ({ pos, via, missed } = landOnScreen(state, b, [x, b.y, z], [from, floor], yawDeg));
+      if (!pos) return null;
+    }
   }
   return { id: b.id, pos, via, step, missed };
+}
+
+// A real (3D) fall is a straight line down the screen. It looks wrong when it passes behind a visible top drawn right
+// under the block that is nearer the camera, down to and including where it stops: on screen it sinks into that block
+// (L24 report). `P` is the cell it was pushed into, `pos` where gravity puts it (null: off the world).
+function fallLooksWrong(state, b, P, pos, yawDeg) {
+  if (pos && pos[1] === P[1]) return false;
+  const { v, r, u } = viewBasis(yawDeg);
+  const solid = state.solid.filter((s) => s !== b), occ = new Set(solid.map((s) => key(s.x, s.y, s.z)));
+  const foot = [P[0] + 0.5, P[1], P[2] + 0.5], fx = dot(foot, r), fy = dot(foot, u);
+  const land = pos ? dot([foot[0], pos[1], foot[2]], u) : -Infinity;
+  return solid.some((t) => {
+    if (occ.has(key(t.x, t.y + 1, t.z)) || (pos && key(t.x, t.y + 1, t.z) === key(...pos))) return false;
+    const c = topCenter(t), tx = dot(c, r), ty = dot(c, u);
+    if (Math.abs(tx - fx) > STEP_TOL || ty > fy - STEP_TOL || ty < land - STEP_TOL) return false;
+    const yCol = (ty - (u[0] * foot[0] + u[2] * foot[2])) / u[1];
+    return dot(c, v) > dot([foot[0], yCol, foot[2]], v) + 1e-6 && topSeen(solid, t, v);
+  });
 }
 
 // Which top is drawn straight below the falling block's base on screen? Tops of any block with nothing on
