@@ -14,6 +14,8 @@ export class CameraRig {
     this.yaw = 45;
     this.angles = [45, 135, 225, 315];
     this.snapped = null; // alignment angle while settled on one
+    this.turnFrom = 45; // yaw when the current turn began
+    this.travel = 0; // how far (and which way) the last turn went, before the snap resets yaw to the bare angle
     this.enabled = false; // player input
     this.auto = 0; // deg/s auto-spin (home screen diorama)
     this.zoom = 1;
@@ -66,6 +68,7 @@ export class CameraRig {
   }
 
   beginRotate() {
+    if (!this.tween) this.turnFrom = this.yaw;
     this.tween = null;
     this.onRotateInput();
     if (this.snapped !== null) { this.snapped = null; this.onChange(null); }
@@ -86,6 +89,7 @@ export class CameraRig {
     this.dragging = false;
     if (this.snapped !== null) { this.snapped = null; this.onChange(null); }
     this.yaw = ((this.yaw % 360) + 360) % 360;
+    this.turnFrom = this.yaw;
     const delta = ((((angle - this.yaw) % 360) + 540) % 360) - 180;
     const ms = save.settings.reducedMotion ? 0 : 300;
     this.tween = { from: this.yaw, to: this.yaw + delta, t: 0, ms, angle };
@@ -141,6 +145,7 @@ export class CameraRig {
       const k = tw.ms ? Math.min(1, tw.t / tw.ms) : 1;
       this.yaw = tw.from + (tw.to - tw.from) * (1 - Math.pow(1 - k, 3));
       if (k >= 1) {
+        this.travel = tw.to - this.turnFrom;
         this.yaw = tw.angle;
         this.tween = null;
         this.snapped = tw.angle;

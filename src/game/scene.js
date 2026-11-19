@@ -1,7 +1,7 @@
 // Three.js scene: renderer, lights, level building, moving sections, snap glow, debug graph overlay.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { topCenter, buildState, screenTurns } from './walkability.js';
+import { topCenter, buildState } from './walkability.js';
 
 const LANTERN = '#EDB85C';
 
@@ -303,8 +303,10 @@ export class World {
     let left = list.length;
     const one = () => --left === 0 && done && done();
     for (const g of list) {
+      // Always relative to where it is now: its rotation keeps accumulating, so rebuilding the end angle from the
+      // pose (wrapped to one circle) made it spin the long way round after a few turns the same way.
       const d = phi;
-      const to = { y: g.position.y, r: (-Math.PI / 2) * screenTurns(level, from) + d };
+      const to = { y: g.position.y, r: g.rotation.y + d };
       const ride = rider && this.groups.indexOf(g) === riderSection ? { obj: rider, p0: rider.position.clone(), r0: g.rotation.y } : null;
       if (instant || Math.abs(d) < 1e-6) {
         g.rotation.y = to.r;

@@ -197,7 +197,8 @@ function requestTurn(a) {
   pendingView = null;
   const from = view, next = buildState(level, plates, pushed, { view: a });
   const t = next.blocks[tile];
-  const way = swingWay(level, state, from, a, tile, Math.sign(((((a - from) % 360) + 540) % 360) - 180) || -1);
+  // A half turn swings the way the camera went (+yaw turns the turntable +rotation.y), or the other way if blocked.
+  const way = swingWay(level, state, from, a, tile, Math.sign(rig.travel) || -1);
   // It would swing into Pip, or land on him: refuse, back to where it was.
   if (next.occupied.has(`${t.x},${t.y + 1},${t.z}`) || way.phi === undefined) {
     audio.bump();
