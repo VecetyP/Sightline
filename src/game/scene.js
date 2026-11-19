@@ -1,7 +1,7 @@
 // Three.js scene: renderer, lights, level building, moving sections, snap glow, debug graph overlay.
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { topCenter, buildState } from './walkability.js';
+import { topCenter, buildState, screenTurns } from './walkability.js';
 
 const LANTERN = '#EDB85C';
 
@@ -11,6 +11,7 @@ export const THEMES = {
   3: { name: 'Cloud Library', side: '#A9BFD1', top: '#ECE7F4', decor: '#B9A7D3', accent: '#F2C6A8', sky: ['#EEF0F5', '#D9D3EA'] },
   4: { name: 'Lantern Hill', side: '#C3B6D6', top: '#F4ECDF', decor: '#8F82A8', accent: '#A9BFD1', sky: ['#ECE6F1', '#CBBFDB'] },
   5: { name: 'Sun Court', side: '#E2C48F', top: '#F6EEDC', decor: '#B98E66', accent: '#C9A7C7', sky: ['#FBF1DE', '#F3D3A8'] },
+  6: { name: 'Paper Theatre', side: '#9CC9C1', top: '#F3EEE6', decor: '#C98BA0', accent: '#F2D49B', sky: ['#EEF5F2', '#CFE6E0'] },
 };
 // Mist (world 5): pale and see-through-looking in sunlight, it firms into stone where shade falls on it.
 const MIST = { lit: '#DCE8F2', glow: '#CFE2F5' };
@@ -294,6 +295,33 @@ export class World {
     if (instant) { g.position.y = to.y; g.rotation.y = to.r; done && done(); }
   }
 
+  // Swing every turntable (world 6) by `phi` (from swingWay, which the solver's swing checks use too), from facing
+  // `from` to facing the snapped angle `view`. `rider` (Pip) is carried round its pivot on section `riderSection`.
+  turnSections(level, from, view, phi, instant, done, rider = null, riderSection = -1) {
+    const list = this.groups.filter((g) => g.userData.m.screen);
+    if (!list.length) return done && done();
+    let left = list.length;
+    const one = () => --left === 0 && done && done();
+    for (const g of list) {
+      const d = phi;
+      const to = { y: g.position.y, r: (-Math.PI / 2) * screenTurns(level, from) + d };
+      const ride = rider && this.groups.indexOf(g) === riderSection ? { obj: rider, p0: rider.position.clone(), r0: g.rotation.y } : null;
+      if (instant || Math.abs(d) < 1e-6) {
+        g.rotation.y = to.r;
+        if (ride) this.carry(g, ride);
+        one();
+        continue;
+      }
+      g.userData.anim = { from: { y: g.position.y, r: g.rotation.y }, to, t: 0, done: one, ride };
+    }
+  }
+
+  // Keep a rider (Pip) on a turning section: rotate his position round the pivot by how far it has turned.
+  carry(g, { obj, p0, r0 }) {
+    const p = p0.clone().sub(g.userData.pivot).applyAxisAngle(new THREE.Vector3(0, 1, 0), g.rotation.y - r0);
+    obj.position.set(g.userData.pivot.x + p.x, p0.y, g.userData.pivot.z + p.z);
+  }
+
   get animating() {
     return (this.groups || []).some((g) => g.userData.anim) || (this.pushAnims || []).some((a) => !a.finished);
   }
@@ -358,6 +386,7 @@ export class World {
       const k = a.t < 0.5 ? 4 * a.t ** 3 : 1 - (-2 * a.t + 2) ** 3 / 2;
       g.position.y = a.from.y + (a.to.y - a.from.y) * k;
       g.rotation.y = a.from.r + (a.to.r - a.from.r) * k;
+      if (a.ride) this.carry(g, a.ride);
       if (a.t >= 1) { g.userData.anim = null; a.done && a.done(); }
     }
     this.pushAnims = (this.pushAnims || []).filter((a) => {

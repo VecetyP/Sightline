@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { World } from './game/scene.js';
 import { CameraRig } from './game/camera.js';
 import { Player } from './game/player.js';
-import { buildState, computeGraph, createPicker, analyticVisibility, keyDirs, plateIndex, tryPush } from './game/walkability.js';
+import { buildState, computeGraph, createPicker, analyticVisibility, keyDirs, plateIndex, tryPush, hasTurntable, swingWay } from './game/walkability.js';
 import { save, recordWin, isBeaten } from './game/save.js';
 import * as audio from './game/audio.js';
 import { createUI } from './ui/screens.js';
@@ -21,6 +21,9 @@ let level = null, levelIdx = 0, plates = [], pushed = {}, state = null, graph = 
 let illusionStep = false; // the current move crosses an illusion seam
 let tile = 0, history = [], moves = 0, mode = 'menu', buffered = null, debugOn = false, won = false, falling = false;
 let hintsUsed = { turn: false, walk: false };
+// Turntables (world 6) face the last snapped angle: `view`. A snap to a new angle waits in `pendingView` while
+// anything is moving, then swings them round.
+let view = 45, pendingView = null;
 
 const ui = createUI(LEVELS, {
   play: () => startLevel(Math.max(0, LEVELS.findIndex((l) => !isBeaten(l.id)))),
@@ -107,10 +110,12 @@ function startLevel(i) {
   level = LEVELS[i];
   plates = (level.moving || []).map(() => false);
   pushed = {};
+  view = level.startAngle ?? 45;
+  pendingView = null;
   world.build(level);
   rig.auto = 0;
   rig.setLevel(world.center, world.radius, level.angles, level.startAngle ?? 45);
-  state = buildState(level, plates, pushed);
+  state = buildState(level, plates, pushed, { view });
   tile = level.blocks.findIndex((b) => b.type === 'start');
   player.place(state.blocks[tile]);
   history = [];
@@ -135,7 +140,7 @@ function startLevel(i) {
 // Rebuild the walkability graph for the current view + plate + pushed-block state.
 function recompute(announce = true) {
   if (!level) return;
-  state = buildState(level, plates, pushed);
+  state = buildState(level, plates, pushed, { view });
   world.setShade(state);
   const yaw = rig.snapped;
   const before = graph;
@@ -176,19 +181,70 @@ function updateDebug() {
   ui.hud.debug(text);
 }
 
-rig.onChange = () => recompute(true);
+rig.onChange = (a) => {
+  if (a !== null && level && hasTurntable(level) && a !== view) return requestTurn(a);
+  recompute(true);
+};
+
+const onSection = () => {
+  const s = state.blocks[tile].section;
+  return s !== undefined && level.moving[s].screen ? s : -1;
+};
+
+// The camera settled on a new angle: swing the turntables to face it, carrying Pip if he's on one.
+function requestTurn(a) {
+  if (player.busy || world.animating || falling || won) { pendingView = a; return; }
+  pendingView = null;
+  const from = view, next = buildState(level, plates, pushed, { view: a });
+  const t = next.blocks[tile];
+  const way = swingWay(level, state, from, a, tile, Math.sign(((((a - from) % 360) + 540) % 360) - 180) || -1);
+  // It would swing into Pip, or land on him: refuse, back to where it was.
+  if (next.occupied.has(`${t.x},${t.y + 1},${t.z}`) || way.phi === undefined) {
+    audio.bump();
+    return rig.turnTo(from);
+  }
+  view = a;
+  const rider = onSection();
+  recompute(false); // the new pose's graph; moves wait (world.animating) until the swing ends
+  world.turnSections(level, from, view, way.phi, save.settings.reducedMotion, () => {
+    if (rider >= 0) player.place(state.blocks[tile]);
+    if (!state.tiles.some((x) => x.id === tile)) { // the swing took the shade from under Pip: fall, then turn back
+      falling = true;
+      buffered = null;
+      audio.bump();
+      return player.fall(() => {
+        falling = false;
+        setView(from);
+        player.place(state.blocks[tile]);
+      });
+    }
+    recompute(true);
+    flush();
+  }, rider >= 0 ? player.root : null, rider);
+}
+
+// Put the turntables (and the camera) back to face `a` at once: undo, or a turn that dropped Pip.
+function setView(a) {
+  pendingView = null;
+  if (a !== view) {
+    world.turnSections(level, view, a, swingWay(level, state, view, a).phi ?? 0, true);
+    view = a;
+  }
+  if (rig.snapped !== a) rig.turnTo(a);
+  recompute(false);
+}
 rig.onRotateInput = () => {
   if (level?.id === 1 && !hintsUsed.turn) { hintsUsed.turn = true; ui.hud.hideHint(0); }
 };
 
 function tryMove(key) {
   if (mode !== 'play' || won || falling) return;
-  if (player.busy || world.animating) { buffered = key; return; }
+  if (player.busy || world.animating || pendingView !== null) { buffered = key; return; }
   const dir = keyDirs(rig.yaw)[key];
   const edge = graph.get(tile)?.find((e) => e.dir[0] === dir[0] && e.dir[1] === dir[1]);
   if (level.id === 1 && !hintsUsed.walk) { hintsUsed.walk = true; ui.hud.hideHint(1); }
   if (!edge) return tryPushMove(dir);
-  history.push({ tile, plates: [...plates], pushed: { ...pushed } });
+  history.push({ tile, plates: [...plates], pushed: { ...pushed }, view });
   moves++;
   ui.hud.setMoves(moves, level.par);
   const target = state.blocks[edge.to];
@@ -200,7 +256,7 @@ function tryMove(key) {
 function tryPushMove(dir) {
   const r = tryPush(state, state.blocks[tile], dir, rig.snapped);
   if (!r) { player.bump(dir); audio.bump(); return; }
-  history.push({ tile, plates: [...plates], pushed: { ...pushed } });
+  history.push({ tile, plates: [...plates], pushed: { ...pushed }, view });
   moves++;
   ui.hud.setMoves(moves, level.par);
   pushed[r.id] = r.pos;
@@ -229,6 +285,7 @@ function arrive(to) {
 }
 
 function flush() {
+  if (pendingView !== null && !won && !falling && !player.busy && !world.animating) return requestTurn(pendingView);
   // Shade (world 5) can leave the tile Pip stands on: Pip falls through and the move is taken back.
   if (!won && !falling && !player.busy && !world.animating && !state.tiles.some((t) => t.id === tile)) {
     falling = true;
@@ -268,6 +325,7 @@ function rewind() {
   plates = h.plates;
   pushed = h.pushed;
   world.placePushBlocks(pushed);
+  if (hasTurntable(level)) setView(h.view);
   moves = history.length;
   ui.hud.setMoves(moves, level.par);
   recompute(false);

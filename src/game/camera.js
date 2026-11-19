@@ -80,6 +80,18 @@ export class CameraRig {
     if (ms === 0) this.update(0);
   }
 
+  // Ease back to a snapped angle (a turn the game refused, or undo restoring the view).
+  turnTo(angle) {
+    this.held.clear();
+    this.dragging = false;
+    if (this.snapped !== null) { this.snapped = null; this.onChange(null); }
+    this.yaw = ((this.yaw % 360) + 360) % 360;
+    const delta = ((((angle - this.yaw) % 360) + 540) % 360) - 180;
+    const ms = save.settings.reducedMotion ? 0 : 300;
+    this.tween = { from: this.yaw, to: this.yaw + delta, t: 0, ms, angle };
+    if (ms === 0) this.update(0);
+  }
+
   setLevel(center, radius, angles, startYaw) {
     this.center.copy(center);
     this.radius = radius;

@@ -1,0 +1,25 @@
+{
+  "id": 24,
+  "world": 6,
+  "title": "Sundial",
+  "par": 8,
+  "angles": [45, 135, 225, 315],
+  "startAngle": 45,
+  "light": [1, 1, 0],
+  "moving": [{ "screen": true, "rotate": { "pivot": [2, 1] }, "blocks": [[2, 1, 1], [2, 1, 0]] }],
+  "blocks": [
+    {"x": -3, "y": 0, "z": 0, "type": "start"},
+    {"x": -3, "y": 0, "z": 1, "type": "solid"},
+    {"x": -2, "y": 0, "z": 0, "type": "solid"},
+    {"x": -2, "y": 0, "z": 1, "type": "solid"},
+    {"x": -2, "y": 1, "z": 1, "type": "push"},
+    {"x": -1, "y": -1, "z": 1, "type": "solid"},
+    {"x": 0, "y": 0, "z": 1, "type": "mist"},
+    {"x": 0, "y": 0, "z": 0, "type": "solid"},
+    {"x": 2, "y": 0, "z": 1, "type": "solid"},
+    {"x": 2, "y": 1, "z": 1, "type": "solid"},
+    {"x": 2, "y": 1, "z": 0, "type": "solid"},
+    {"x": 4, "y": 0, "z": 1, "type": "solid"},
+    {"x": 4, "y": 1, "z": 1, "type": "goal"}
+  ]
+}

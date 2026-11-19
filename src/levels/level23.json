@@ -1,0 +1,23 @@
+{
+  "id": 23,
+  "world": 6,
+  "title": "Shade Wheel",
+  "par": 5,
+  "angles": [45, 135, 225, 315],
+  "startAngle": 45,
+  "light": [1, 1, 0],
+  "moving": [
+    { "screen": true, "rotate": { "pivot": [0, 0] }, "blocks": [[0, 2, 0], [0, 2, -1]] }
+  ],
+  "blocks": [
+    {"x": 0, "y": 0, "z": 0, "type": "solid"},
+    {"x": 0, "y": 1, "z": 0, "type": "solid"},
+    {"x": 0, "y": 2, "z": 0, "type": "solid"},
+    {"x": 0, "y": 2, "z": -1, "type": "solid"},
+    {"x": 1, "y": 1, "z": -2, "type": "start"},
+    {"x": -4, "y": 1, "z": 0, "type": "goal"},
+    {"x": -2, "y": 0, "z": 1, "type": "mist"},
+    {"x": -2, "y": 0, "z": 0, "type": "mist"},
+    {"x": -1, "y": 1, "z": 2, "type": "solid"}
+  ]
+}

@@ -31,19 +31,62 @@ export const topCenter = (b) => [b.x + 0.5, b.y + 1, b.z + 0.5];
 // Where the character stands: the middle of the top, or on a stair, the middle of its half-step slab.
 export const standPoint = (b) => (b.slab ? [(b.slab[0] + b.slab[3]) / 2, b.slab[4], (b.slab[2] + b.slab[5]) / 2] : topCenter(b));
 
+// Turntables (world 6): a section with `"screen": true` always faces the camera the same way. Its blocks are
+// listed in their pose at the level's startAngle; at another snapped angle it has turned with the camera.
+// A camera turn of +90° turns the world (x,z) -> (z,-x) on screen, i.e. three of buildState's turns.
+export const hasTurntable = (level) => (level.moving || []).some((m) => m.screen);
+export const screenTurns = (level, view) => ((((((level.startAngle ?? 45) - (view ?? level.startAngle ?? 45)) / 90) % 4) + 4) % 4);
+
+// The turntables' swing (Three.js rotation.y of their scene groups) from facing `from` to facing `to`: the short
+// way round. A half turn can go either way: it follows the camera (`prefer` = +1/-1), or the other way if that one
+// is blocked. `a` is the state before, `tile` is where Pip stands. Returns { phi } (the swing the game animates),
+// or what blocks it: { block } (a still block: a level must never do this, the audit fails it) or { pip: true }
+// (the game refuses the turn and springs the camera back).
+export function swingWay(level, a, from, to, tile = null, prefer = -1) {
+  const d = (-Math.PI / 2) * (screenTurns(level, to) - screenTurns(level, from));
+  const s = ((d % (2 * Math.PI)) + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
+  const ways = Math.abs(Math.abs(s) - Math.PI) < 1e-6 ? [prefer * Math.PI, -prefer * Math.PI] : [s];
+  let clash = null;
+  for (const phi of ways) if (!(clash = sweep(level, a, phi, tile))) return { phi };
+  return clash;
+}
+
+function sweep(level, a, phi, tile) {
+  if (Math.abs(phi) < 1e-9) return null;
+  const sec = (x) => x.section !== undefined && level.moving[x.section].screen;
+  const still = a.solid.filter((x) => !sec(x));
+  const pip = tile !== null && !sec(a.blocks[tile]) ? a.blocks[tile] : null;
+  for (const x of a.solid.filter(sec)) {
+    const [px, pz] = level.moving[x.section].rotate.pivot, cx = px + 0.5, cz = pz + 0.5;
+    const rx = x.x + 0.5 - cx, rz = x.z + 0.5 - cz;
+    for (let i = 1; i <= 24; i++) {
+      const f = (phi * i) / 24, qx = cx + rx * Math.cos(f) + rz * Math.sin(f), qz = cz - rx * Math.sin(f) + rz * Math.cos(f);
+      // ponytail: the swung cube is treated as an axis-aligned box round its centre; a turned cube's corners reach ~0.2 further.
+      const hit = still.find((y) => y.y === x.y && Math.abs(y.x + 0.5 - qx) < 0.9 && Math.abs(y.z + 0.5 - qz) < 0.9);
+      if (hit) return { block: hit };
+      // Pip is about half a block wide and stands in the cell above his tile.
+      if (pip && pip.y + 1 === x.y && Math.abs(pip.x + 0.5 - qx) < 0.8 && Math.abs(pip.z + 0.5 - qz) < 0.8) return { pip: true };
+    }
+  }
+  return null;
+}
+
 // Resolve block positions for a given plate state and pushed-block state.
 // Each block gets a stable id (its index). `pushed` maps a push block's id to [x,y,z], or null once it fell off.
+// opts.view: the last snapped angle (where the turntables face). Defaults to startAngle.
 export function buildState(level, plates = [], pushed = {}, opts = {}) {
   const blocks = level.blocks.map((b, id) => ({ id, x: b.x, y: b.y, z: b.z, type: b.type, base: b }));
   (level.moving || []).forEach((m, i) => {
-    if (!plates[i]) return;
+    const turns = m.screen ? screenTurns(level, opts.view) : plates[i] ? m.rotate?.turns || 1 : 0;
+    if (!m.screen && !plates[i]) return;
     const members = new Set(m.blocks.map((p) => key(...p)));
     for (const b of blocks) {
       if (!members.has(key(b.base.x, b.base.y, b.base.z))) continue;
-      if (m.dy) b.y += m.dy;
+      b.section = i;
+      if (m.dy && !m.screen) b.y += m.dy;
       if (m.rotate) {
         const [px, pz] = m.rotate.pivot;
-        for (let t = 0; t < (m.rotate.turns || 1); t++) {
+        for (let t = 0; t < turns; t++) {
           const dx = b.x - px, dz = b.z - pz;
           b.x = px - dz; b.z = pz + dx;
         }
@@ -179,7 +222,7 @@ function inPlainView(solid, [x, y, z], v, topOnly = false) {
 }
 
 export const plateIndex = (level, b) =>
-  (level.moving || []).findIndex((m) => m.plate[0] === b.base.x && m.plate[1] === b.base.y && m.plate[2] === b.base.z);
+  (level.moving || []).findIndex((m) => m.plate && m.plate[0] === b.base.x && m.plate[1] === b.base.y && m.plate[2] === b.base.z);
 
 // Real 3D adjacency: same height, or one step up onto/off a stair.
 function realLink(a, b) {

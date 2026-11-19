@@ -1,0 +1,27 @@
+{
+  "id": 22,
+  "world": 6,
+  "title": "Under the Arm",
+  "par": 9,
+  "angles": [45, 135, 225, 315],
+  "startAngle": 45,
+  "blocks": [
+    {"x": 0, "y": 0, "z": 0, "type": "solid"},
+    {"x": 0, "y": 1, "z": 0, "type": "solid"},
+    {"x": 0, "y": 2, "z": 0, "type": "solid"},
+    {"x": 1, "y": 2, "z": 0, "type": "solid"},
+    {"x": 1, "y": 2, "z": 1, "type": "goal"},
+    {"x": 0, "y": 1, "z": -2, "type": "solid"},
+    {"x": 1, "y": 0, "z": 2, "type": "start"},
+    {"x": 0, "y": 1, "z": -1, "type": "solid"},
+    {"x": 1, "y": 1, "z": -1, "type": "solid"},
+    {"x": 2, "y": 0, "z": 1, "type": "solid"},
+    {"x": 1, "y": 0, "z": 1, "type": "solid"},
+    {"x": 3, "y": 0, "z": 1, "type": "solid"},
+    {"x": 1, "y": 1, "z": 0, "type": "solid"},
+    {"x": -1, "y": 1, "z": -1, "type": "solid"}
+  ],
+  "moving": [
+    { "screen": true, "rotate": { "pivot": [0, 0] }, "blocks": [[0, 2, 0], [1, 2, 0], [1, 2, 1]] }
+  ]
+}
