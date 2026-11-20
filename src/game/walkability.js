@@ -172,7 +172,12 @@ export function tryPush(state, from, [dx, dz], yawDeg = null) {
       ({ pos, via, missed } = landOnScreen(state, b, [x, b.y, z], [from, floor], yawDeg));
       if (!pos) {
         const s = slideOnScreen(state, b, [dx, dz], from, yawDeg);
-        return s ? { id: b.id, pos: s.pos, via: s.via, pre: true, step, missed: false } : null;
+        if (s) return { id: b.id, pos: s.pos, via: s.via, pre: true, step, missed: false };
+        // Pushed away from the camera, the tops drawn under it are in front of it: it drops behind them into the
+        // void, unless one is drawn right at its foot (then it looked like it rested there). L24 at 225° report.
+        const { v } = viewBasis(yawDeg), away = dx * Math.sign(v[0]) + dz * Math.sign(v[2]) < 0;
+        if (!away || fallLooksWrong(state, b, [x, b.y, z], null, yawDeg, true)) return null;
+        return { id: b.id, pos: null, via: null, step, missed: false };
       }
     }
   }
@@ -209,7 +214,7 @@ function slideOnScreen(state, b, [dx, dz], from, yawDeg) {
 // A real (3D) fall is a straight line down the screen. It looks wrong when it passes behind a visible top drawn right
 // under the block that is nearer the camera, down to and including where it stops: on screen it sinks into that block
 // (L24 report). `P` is the cell it was pushed into, `pos` where gravity puts it (null: off the world).
-function fallLooksWrong(state, b, P, pos, yawDeg) {
+function fallLooksWrong(state, b, P, pos, yawDeg, footOnly = false) {
   if (pos && pos[1] === P[1]) return false;
   const { v, r, u } = viewBasis(yawDeg);
   const solid = state.solid.filter((s) => s !== b), occ = new Set(solid.map((s) => key(s.x, s.y, s.z)));
@@ -219,7 +224,7 @@ function fallLooksWrong(state, b, P, pos, yawDeg) {
     if (occ.has(key(t.x, t.y + 1, t.z)) || (pos && key(t.x, t.y + 1, t.z) === key(...pos))) return false;
     const c = topCenter(t), tx = dot(c, r), ty = dot(c, u);
     // ty = fy: a nearer top drawn right at its foot, so it already looks like it's resting there (L12 at 45°).
-    if (Math.abs(tx - fx) > STEP_TOL || ty > fy + STEP_TOL || ty < land - STEP_TOL) return false;
+    if (Math.abs(tx - fx) > STEP_TOL || ty > fy + STEP_TOL || ty < (footOnly ? fy : land) - STEP_TOL) return false;
     const yCol = (ty - (u[0] * foot[0] + u[2] * foot[2])) / u[1];
     return dot(c, v) > dot([foot[0], yCol, foot[2]], v) + 1e-6 && topSeen(solid, t, v);
   });
