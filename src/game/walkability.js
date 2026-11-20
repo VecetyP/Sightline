@@ -156,6 +156,7 @@ export function tryPush(state, from, [dx, dz], yawDeg = null) {
   const x = b.x + dx, z = b.z + dz;
   let y = b.y;
   if (state.occupied.has(key(x, y, z))) return null;
+  if (yawDeg !== null && spotTaken(state, b, [x, y, z], yawDeg)) return null;
   const floor = state.occupied.get(key(from.x + dx, from.y, from.z + dz));
   // ponytail: mist shade is judged before the push; a push that moves the shade itself needs a recheck after.
   const step = floor && floor.type !== 'decor' && (floor.type !== 'mist' || floor.shaded) ? floor.id : null;
@@ -176,6 +177,15 @@ export function tryPush(state, from, [dx, dz], yawDeg = null) {
     }
   }
   return { id: b.id, pos, via, step, missed };
+}
+
+// On screen the pushed-into cell is exactly where another block is drawn (same view line), so the push looks like
+// shoving it into that block (L12 report: a raised orange block hid the gap). Only nearer blocks: they cover it.
+// ponytail: a farther block drawn there would be covered by the box; refusing those broke honest pushes in 5 levels.
+function spotTaken(state, b, [x, y, z], yawDeg) {
+  const { v } = viewBasis(yawDeg), sx = Math.sign(v[0]), sz = Math.sign(v[2]);
+  for (let k = 1; k <= 8; k++) if (state.occupied.has(key(x + k * sx, y + k, z + k * sz))) return true;
+  return false;
 }
 
 // The pushed-into cell is drawn where "resting on a nearer top" would be, but in 3D it's behind that top with nothing
