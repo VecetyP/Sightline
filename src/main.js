@@ -51,6 +51,7 @@ document.body.classList.toggle('reduced', save.settings.reducedMotion);
 // Home-screen preview, right of the sidebar: a slowly turning level where Pip wanders around.
 // Every few seconds it fades to a different level. Pip only walks real paths, never illusions.
 const DEMO_SECONDS = 12;
+const touch = matchMedia('(pointer: coarse)'); // phones and tablets: no keyboard
 // Centre the preview in the space the menu leaves: right of the sidebar, or above it when it's a bottom sheet.
 function placeDiorama() {
   const sb = document.querySelector('.sidebar'), sheet = matchMedia('(max-width: 720px)').matches;
@@ -133,7 +134,7 @@ function startLevel(i) {
   ui.hud.banner(`${level.id}. ${level.title}`);
   if (level.id === 1) {
     hintsUsed = { turn: false, walk: false };
-    ui.hud.hints(matchMedia('(pointer: coarse)').matches ? [
+    ui.hud.hints(touch.matches ? [
       'Drag to turn the camera.',
       'Tap beside Pip to walk. Reach the glowing tile.',
     ] : [
@@ -403,8 +404,8 @@ function tick(dt) {
   updateDiorama(dt);
   world.update(dt);
   player.update(dt);
-  if (level) player.pointW(keyDirs(rig.yaw).w);
-  else player.arrow.visible = false; // no controls on the home diorama
+  if (level && !touch.matches) player.pointW(keyDirs(rig.yaw).w);
+  else player.arrow.visible = false; // no W arrow on the home diorama, or on touch screens (no keys there)
   if (level) ui.hud.compass(rig.yaw, level.angles, rig.snapped);
   if (debugOn && level) world.debug.visible = true;
   // Mid-step across an illusion, Pip's straight 3D path cuts through blocks, so draw Pip over the scene.
@@ -422,4 +423,4 @@ function frame() {
 toHome();
 frame();
 
-if (import.meta.env.DEV) window.__pf = { rig, start: startLevel, analyticVisibility, pick, get level() { return level; }, advance: (sec) => { for (let t = 0; t < sec; t += 1 / 60) tick(1 / 60); }, world, get graph() { return graph; }, get tile() { return tile; }, get visibility() { return visibility; }, get state() { return state; }, get demo() { return demo; } };
+if (import.meta.env.DEV) window.__pf = { rig, player, start: startLevel, analyticVisibility, pick, get level() { return level; }, advance: (sec) => { for (let t = 0; t < sec; t += 1 / 60) tick(1 / 60); }, world, get graph() { return graph; }, get tile() { return tile; }, get visibility() { return visibility; }, get state() { return state; }, get demo() { return demo; } };

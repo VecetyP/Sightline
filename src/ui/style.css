@@ -15,7 +15,7 @@
   --sidebar: 320px; /* main.js measures the sidebar to centre the home preview */
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body {
   margin: 0;
