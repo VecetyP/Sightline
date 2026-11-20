@@ -17,26 +17,42 @@ Every level adds one new idea on top of the last, and nothing tells you what it 
 </p>
 
 <p align="center">
-  <img src="docs/level03.png" alt="Garden Stairs" width="24%">
-  <img src="docs/level07.png" alt="Moon Gate" width="24%">
-  <img src="docs/level09.png" alt="Rising Stacks" width="24%">
-  <img src="docs/level12.png" alt="Night Lanterns" width="24%">
+  <img src="docs/level03.png" alt="Level 3, Garden Stairs" width="24%">
+  <img src="docs/level07.png" alt="Level 7, Moon Gate" width="24%">
+  <img src="docs/level10.png" alt="Level 10, Rising Stacks" width="24%">
+  <img src="docs/level14.png" alt="Level 14, Night Lanterns" width="24%">
 </p>
 
-13 levels across four small worlds.
+## Six worlds
+
+24 levels across six small worlds, four levels each. Each world adds a new kind of trouble:
+
+| World | Levels | What's new |
+|---|---|---|
+| **Morning Garden** | 1–4 | Ledges that only meet on screen. Real stairs. Routes that need more than one angle. |
+| **Tea House** | 5–8 | Blocks that move when you push them, and are something to stand on once they stop. |
+| **Cloud Library** | 9–12 | Plates that lift parts of the shelves, and edges worth pushing things over. |
+| **Lantern Hill** | 13–16 | Lanterns don't fall where they are. They fall where they look like they are. |
+| **Sun Court** | 17–20 | Mist you can't stand on, unless something keeps the sun off it. |
+| **Paper Theatre** | 21–24 | Parts of the stage turn whenever the camera does. |
+
+<p align="center">
+  <img src="docs/shade.gif" alt="Sun Court: Pip pushes a block into the sunlight, its shadow falls on a mist tile, the mist turns to stone and Pip walks over it to the goal" width="45%">
+  <img src="docs/turntable.gif" alt="Paper Theatre: as the camera turns, a turntable arm swings round with it, carrying Pip across to the goal" width="45%">
+</p>
 
 ## Controls
 
-| Action | Keys |
-|---|---|
-| Walk | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> |
-| Turn the camera | Hold <kbd>Q</kbd> / <kbd>E</kbd>, or drag with the right mouse button |
-| Zoom | Mouse wheel |
-| Undo / Restart | <kbd>Z</kbd> / <kbd>R</kbd> |
-| Next level (after a win) | <kbd>Space</kbd> or <kbd>Enter</kbd> |
-| Pause / Back | <kbd>Esc</kbd> |
+| Action | Keyboard and mouse | Touch |
+|---|---|---|
+| Walk | <kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> | Tap beside Pip, on the side you want to go |
+| Turn the camera | Hold <kbd>Q</kbd> / <kbd>E</kbd>, or drag with the right mouse button | Drag with one finger |
+| Zoom | Mouse wheel | Pinch |
+| Undo / Restart | <kbd>Z</kbd> / <kbd>R</kbd> | The ↶ / ↻ buttons |
+| Next level (after a win) | <kbd>Space</kbd> or <kbd>Enter</kbd> | **Next Level** |
+| Pause / Back | <kbd>Esc</kbd> | The ❚❚ button |
 
-Release the camera near one of the snap angles and it settles there. That's when edges line up.
+Let go of the camera near one of the snap angles and it settles there. That's when edges line up.
 
 ## Run it locally
 
