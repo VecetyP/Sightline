@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { World } from './game/scene.js';
 import { CameraRig } from './game/camera.js';
 import { Player } from './game/player.js';
-import { buildState, computeGraph, createPicker, analyticVisibility, keyDirs, plateIndex, tryPush, hasTurntable, swingWay, edgesFrom } from './game/walkability.js';
+import { buildState, computeGraph, createPicker, analyticVisibility, keyDirs, plateIndex, tryPush, hasTurntable, swingWay, edgesFrom, rideSection } from './game/walkability.js';
 import { save, recordWin, isBeaten } from './game/save.js';
 import * as audio from './game/audio.js';
 import { createUI } from './ui/screens.js';
@@ -275,7 +275,7 @@ function tryPushMove(dir) {
   // Pip starts moving first, so an instant push (reduced motion) doesn't check the ground under Pip too early.
   if (r.step !== null) player.moveTo(state.blocks[r.step], dir, () => arrive(r.step));
   else player.bump(dir);
-  world.pushBlock(r.id, r.pos, dir, save.settings.reducedMotion, () => { recompute(false); flush(); }, r.via);
+  world.pushBlock(r.id, r.pos, dir, save.settings.reducedMotion, () => { recompute(false); flush(); }, r.via, r.pre);
 }
 
 function arrive(to) {
@@ -284,10 +284,13 @@ function arrive(to) {
   const b = state.blocks[to];
   if (b.type === 'plate') {
     const i = plateIndex(level, b);
+    const before = pushed;
+    pushed = rideSection(level, plates, pushed, i, !plates[i], { view }); // push blocks on the section ride along
     plates[i] = !plates[i];
     audio.plate();
     world.pressPlate(to, plates[i]);
-    world.setSection(i, plates[i], save.settings.reducedMotion, () => { recompute(false); flush(); });
+    const riders = Object.keys(pushed).filter((id) => pushed[id] !== before[id]).map((id) => [+id, pushed[id]]);
+    world.setSection(i, plates[i], save.settings.reducedMotion, () => { recompute(false); flush(); }, riders);
     return;
   }
   if (b.type === 'goal') return win();

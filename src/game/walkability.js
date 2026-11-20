@@ -120,6 +120,30 @@ export function buildState(level, plates = [], pushed = {}, opts = {}) {
 
 export const PUSHABLE = ['push', 'lantern'];
 
+// A plate moves its section (`plates` = before the toggle): push blocks resting on it, or stacked on those, ride
+// along. Returns the new `pushed`. Without this a raised section would rise into a block pushed onto it (L10).
+// ponytail: only straight lifts (dy) carry blocks; a block on a plate's rotating section isn't moved (the
+// checker's overlap audit fails a level where that can happen).
+export function rideSection(level, plates, pushed, i, on, opts = {}) {
+  const m = level.moving[i];
+  if (!m.dy || m.rotate || m.screen) return pushed;
+  const st = buildState(level, plates, pushed, opts), dy = on ? m.dy : -m.dy;
+  const members = new Set(m.blocks.map((p) => key(...p))); // `b.section` is only set while the plate is down
+  const section = st.solid.filter((b) => members.has(key(b.base.x, b.base.y, b.base.z)) && !PUSHABLE.includes(b.type));
+  const carried = new Set(section);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const b of st.solid) {
+      if (carried.has(b) || !PUSHABLE.includes(b.type) || !carried.has(st.occupied.get(key(b.x, b.y - 1, b.z)))) continue;
+      carried.add(b);
+      grew = true;
+    }
+  }
+  const out = { ...pushed };
+  for (const b of carried) if (!section.includes(b)) out[b.id] = [b.x, b.y + dy, b.z];
+  return out;
+}
+
 // Walking into a push block (at the character's height, one tile over) shoves it one tile.
 // If nothing holds it up it falls. A lantern block with the camera snapped (yawDeg set) falls the way it looks:
 // straight down the screen, onto the first top drawn below it, at whatever depth that top really is.
@@ -145,10 +169,31 @@ export function tryPush(state, from, [dx, dz], yawDeg = null) {
     // way a lantern would (L24 report). With nothing honest to land on, the push doesn't happen.
     if (yawDeg !== null && fallLooksWrong(state, b, [x, b.y, z], pos, yawDeg)) {
       ({ pos, via, missed } = landOnScreen(state, b, [x, b.y, z], [from, floor], yawDeg));
-      if (!pos) return null;
+      if (!pos) {
+        const s = slideOnScreen(state, b, [dx, dz], from, yawDeg);
+        return s ? { id: b.id, pos: s.pos, via: s.via, pre: true, step, missed: false } : null;
+      }
     }
   }
   return { id: b.id, pos, via, step, missed };
+}
+
+// The pushed-into cell is drawn where "resting on a nearer top" would be, but in 3D it's behind that top with nothing
+// under it (L12 at 45°: the box should sit on the orange pillar). Every cell on the block's view line looks the same,
+// so it swaps unseen to the one where the slide ends resting on a real block, then slides there. Depth follows the
+// push (nearer when pushed toward the camera), and the start, the swapped spot and the end must all be in plain view.
+function slideOnScreen(state, b, [dx, dz], from, yawDeg) {
+  const { v } = viewBasis(yawDeg), sx = Math.sign(v[0]), sz = Math.sign(v[2]);
+  const toward = dx * sx + dz * sz > 0;
+  const solid = state.solid.filter((s) => s !== b), occ = (p) => state.occupied.has(key(...p)) && state.occupied.get(key(...p)) !== b;
+  const pip = key(from.x, from.y + 1, from.z);
+  if (!inPlainView(solid, [b.x, b.y, b.z], v)) return null;
+  for (let n = 1; n <= 8; n++) {
+    const k = toward ? n : -n, c = [b.x + k * sx, b.y + k, b.z + k * sz], end = [c[0] + dx, c[1], c[2] + dz];
+    if (occ(c) || occ(end) || key(...c) === pip || key(...end) === pip || !occ([end[0], end[1] - 1, end[2]])) continue;
+    if (inPlainView(solid, c, v) && inPlainView(solid, end, v)) return { via: c, pos: end };
+  }
+  return null;
 }
 
 // A real (3D) fall is a straight line down the screen. It looks wrong when it passes behind a visible top drawn right
@@ -163,7 +208,8 @@ function fallLooksWrong(state, b, P, pos, yawDeg) {
   return solid.some((t) => {
     if (occ.has(key(t.x, t.y + 1, t.z)) || (pos && key(t.x, t.y + 1, t.z) === key(...pos))) return false;
     const c = topCenter(t), tx = dot(c, r), ty = dot(c, u);
-    if (Math.abs(tx - fx) > STEP_TOL || ty > fy - STEP_TOL || ty < land - STEP_TOL) return false;
+    // ty = fy: a nearer top drawn right at its foot, so it already looks like it's resting there (L12 at 45°).
+    if (Math.abs(tx - fx) > STEP_TOL || ty > fy + STEP_TOL || ty < land - STEP_TOL) return false;
     const yCol = (ty - (u[0] * foot[0] + u[2] * foot[2])) / u[1];
     return dot(c, v) > dot([foot[0], yCol, foot[2]], v) + 1e-6 && topSeen(solid, t, v);
   });

@@ -256,8 +256,10 @@ export class World {
   }
 
   // Slide a push block one tile along dir, then let it drop to `pos` (or off the world when null).
-  pushBlock(id, pos, dir, instant, done, via = null) {
+  // `pre`: swap to `via` first (looks identical from this angle), then slide from there onto `pos` (slideOnScreen).
+  pushBlock(id, pos, dir, instant, done, via = null, pre = false) {
     const mesh = this.meshes[id];
+    if (pre) { mesh.position.set(via[0] + 0.5, via[1] + 0.5, via[2] + 0.5); via = null; }
     const from = mesh.position.clone();
     const mid = from.clone().add(new THREE.Vector3(dir[0], 0, dir[1]));
     const end = pos ? new THREE.Vector3(pos[0] + 0.5, pos[1] + 0.5, pos[2] + 0.5) : mid.clone().setY(mid.y - 14);
@@ -283,7 +285,8 @@ export class World {
   }
 
   // Animate a moving section to its on/off state. Calls done() when settled.
-  setSection(i, on, instant, done) {
+  // `riders`: [[id, pos]] push blocks resting on the section (rideSection); they rise or sink with it to `pos`.
+  setSection(i, on, instant, done, riders = []) {
     const g = this.groups[i];
     if (!g) return done && done();
     const m = g.userData.m;
@@ -291,8 +294,9 @@ export class World {
     const turns = m.rotate ? (((m.rotate.turns || 1) % 4) + 4) % 4 : 0; // 3 turns animates as -1
     const to = { y: on && m.dy ? m.dy : 0, r: on && m.rotate ? (-Math.PI / 2) * (turns === 3 ? -1 : turns) : 0 };
     g.userData.on = on;
-    g.userData.anim = instant ? null : { from, to, t: 0, done };
-    if (instant) { g.position.y = to.y; g.rotation.y = to.r; done && done(); }
+    const lift = riders.map(([id, pos]) => ({ mesh: this.meshes[id], y0: this.meshes[id].position.y, id, pos }));
+    g.userData.anim = instant ? null : { from, to, t: 0, done, lift };
+    if (instant) { g.position.y = to.y; g.rotation.y = to.r; for (const [id, pos] of riders) this.placeOne(id, pos); done && done(); }
   }
 
   // Swing every turntable (world 6) by `phi` (from swingWay, which the solver's swing checks use too), from facing
@@ -389,7 +393,12 @@ export class World {
       g.position.y = a.from.y + (a.to.y - a.from.y) * k;
       g.rotation.y = a.from.r + (a.to.r - a.from.r) * k;
       if (a.ride) this.carry(g, a.ride);
-      if (a.t >= 1) { g.userData.anim = null; a.done && a.done(); }
+      for (const l of a.lift || []) l.mesh.position.y = l.y0 + g.position.y - a.from.y;
+      if (a.t >= 1) {
+        for (const l of a.lift || []) this.placeOne(l.id, l.pos);
+        g.userData.anim = null;
+        a.done && a.done();
+      }
     }
     const ended = [];
     this.pushAnims = (this.pushAnims || []).filter((a) => {
