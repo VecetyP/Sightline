@@ -5,6 +5,7 @@ import { save } from './save.js';
 
 const KEY_SPEED = 100; // deg/s at sensitivity 1
 const DRAG_SPEED = 0.35; // deg/px
+const TAP_PX = 8; // a touch that moves less than this is a tap, not a turn
 
 export class CameraRig {
   constructor(dom) {
@@ -22,25 +23,66 @@ export class CameraRig {
     this.offsetPx = 0; // shift the view right by this many screen pixels (home sidebar)
     this.onChange = () => {}; // (snappedAngle|null) whenever the walkable view changes
     this.onRotateInput = () => {};
+    this.onTap = () => {}; // (clientX, clientY) a touch that didn't drag
+    this.offsetPy = 0; // shift the view up by this many screen pixels (home menu as a bottom sheet)
     this.held = new Set();
     this.dragging = false;
     this.tween = null;
 
+    // Touch: drag turns (once past TAP_PX), a short touch is a tap (onTap), two fingers pinch-zoom.
+    const touches = new Map();
+    const spread = () => { const [a, b] = [...touches.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
     dom.addEventListener('contextmenu', (e) => e.preventDefault());
     dom.addEventListener('pointerdown', (e) => {
-      if (e.button !== 2 || !this.enabled) return;
+      if (!this.enabled) return;
+      if (e.pointerType !== 'mouse') {
+        touches.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
+        dom.setPointerCapture(e.pointerId);
+        this.lastX = e.clientX;
+        if (touches.size === 2) {
+          for (const t of touches.values()) t.moved = true; // a pinch is never a tap or a turn
+          this.pinch = spread();
+          if (this.dragging) { this.dragging = false; this.release(); }
+        }
+        return;
+      }
+      if (e.button !== 2) return;
       this.dragging = true;
       this.lastX = e.clientX;
       dom.setPointerCapture(e.pointerId);
       this.beginRotate();
     });
     dom.addEventListener('pointermove', (e) => {
+      const t = touches.get(e.pointerId);
+      if (t) {
+        t.x = e.clientX; t.y = e.clientY;
+        if (touches.size >= 2) {
+          const d = spread();
+          if (this.pinch) this.zoom = THREE.MathUtils.clamp(this.zoom * (d / this.pinch), 0.7, 1.8);
+          this.pinch = d;
+          return this.resize();
+        }
+        if (!this.dragging && !t.moved && Math.hypot(t.x - t.x0, t.y - t.y0) > TAP_PX) {
+          t.moved = this.dragging = true;
+          this.beginRotate();
+        }
+      }
       if (!this.dragging) return;
       const dx = e.clientX - this.lastX;
       this.lastX = e.clientX;
       this.yaw -= dx * DRAG_SPEED * save.settings.sensitivity * (save.settings.invertDrag ? -1 : 1);
     });
-    const end = () => { if (this.dragging) { this.dragging = false; this.release(); } };
+    const end = (e) => {
+      const t = touches.get(e.pointerId);
+      if (t) {
+        const tap = !t.moved && touches.size === 1 && e.type === 'pointerup';
+        touches.delete(e.pointerId);
+        this.pinch = 0;
+        if (touches.size) return;
+        if (tap) return this.onTap(e.clientX, e.clientY);
+      }
+      if (this.dragging) { this.dragging = false; this.release(); }
+    };
     dom.addEventListener('pointerup', end);
     dom.addEventListener('pointercancel', end);
     dom.addEventListener('wheel', (e) => {
@@ -117,8 +159,9 @@ export class CameraRig {
     const dx = (this.offsetPx / innerWidth) * 2 * half * aspect;
     this.camera.left = -half * aspect - dx;
     this.camera.right = half * aspect - dx;
-    this.camera.top = half;
-    this.camera.bottom = -half;
+    const dy = (this.offsetPy / innerHeight) * 2 * half;
+    this.camera.top = half - dy;
+    this.camera.bottom = -half - dy;
     this.camera.updateProjectionMatrix();
   }
 

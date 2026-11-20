@@ -12,7 +12,7 @@
   --sky-b: #f2dcc6;
   --shadow: 0 6px 18px rgba(91, 74, 63, 0.14), 0 1px 3px rgba(91, 74, 63, 0.1);
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --sidebar: 320px; /* keep in sync with SIDEBAR_PX in main.js */
+  --sidebar: 320px; /* main.js measures the sidebar to centre the home preview */
 }
 
 * { box-sizing: border-box; }
@@ -28,7 +28,7 @@ html, body {
   user-select: none;
 }
 
-#game { position: fixed; inset: 0; display: block; transition: opacity 0.5s; }
+#game { position: fixed; inset: 0; display: block; transition: opacity 0.5s; touch-action: none; }
 #ui { position: fixed; inset: 0; pointer-events: none; }
 
 .screen {
@@ -273,3 +273,40 @@ kbd {
 .row input[type='range'] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 999px; background: var(--sand); outline-offset: 4px; }
 .row input[type='range']::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--rose); box-shadow: var(--shadow); cursor: pointer; }
 .row input[type='range']::-moz-range-thumb { width: 18px; height: 18px; border: none; border-radius: 50%; background: var(--rose); cursor: pointer; }
+
+/* Phones and small windows */
+.hud-top { padding-top: max(18px, env(safe-area-inset-top)); padding-left: max(22px, env(safe-area-inset-left)); padding-right: max(22px, env(safe-area-inset-right)); }
+.compass { left: max(22px, env(safe-area-inset-left)); bottom: max(22px, env(safe-area-inset-bottom)); }
+.panel { max-height: calc(100% - 24px); overflow-y: auto; }
+@media (max-width: 720px), (max-height: 500px) {
+  .panel { min-width: 0; padding: 22px 20px; border-radius: 22px; }
+  #levels .panel { width: 94vw; }
+  h2 { font-size: 26px; }
+  .complete-panel .menu { flex-wrap: wrap; }
+  .row { gap: 12px; }
+  .row input[type='range'] { width: 110px; }
+  .hud-top { position: static; padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left)); }
+  .hud-name { font-size: 16px; }
+  .hud-name small { display: none; }
+  .hud-moves { top: auto; bottom: max(16px, env(safe-area-inset-bottom)); padding: 6px 14px; font-size: 14px; }
+  .hints { bottom: 64px; padding: 0 12px; }
+  .hint { font-size: 14px; text-align: center; }
+  .banner { font-size: 28px; }
+  .compass { width: 56px; height: 56px; }
+  .tabs button { font-size: 13px; padding: 7px 10px; }
+  .cards { gap: 10px; }
+  :root { --sidebar: 240px; }
+  .sidebar { gap: 18px; padding: 24px; }
+  .sidebar h1.title { font-size: 40px; }
+  .sidebar .menu { gap: 8px; }
+  .sidebar button { font-size: 16px; padding: 10px 20px; }
+}
+/* Portrait phones: the home menu becomes a bottom sheet under the preview. */
+@media (max-width: 720px) {
+  #home { justify-content: flex-end; }
+  .sidebar { width: 100%; height: auto; padding: 20px 24px max(20px, env(safe-area-inset-bottom)); border-radius: 24px 24px 0 0; }
+  .sidebar h1.title { text-align: center; }
+  .sidebar .menu { display: grid; grid-template-columns: 1fr 1fr; }
+  .sidebar .menu .primary { grid-column: span 2; }
+}
+@media (max-width: 720px) { .sidebar .menu button:last-child { grid-column: span 2; } }

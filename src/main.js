@@ -50,8 +50,13 @@ document.body.classList.toggle('reduced', save.settings.reducedMotion);
 
 // Home-screen preview, right of the sidebar: a slowly turning level where Pip wanders around.
 // Every few seconds it fades to a different level. Pip only walks real paths, never illusions.
-const SIDEBAR_PX = 320; // matches --sidebar in style.css
 const DEMO_SECONDS = 12;
+// Centre the preview in the space the menu leaves: right of the sidebar, or above it when it's a bottom sheet.
+function placeDiorama() {
+  const sb = document.querySelector('.sidebar'), sheet = matchMedia('(max-width: 720px)').matches;
+  rig.offsetPx = sheet ? 0 : sb.offsetWidth / 2;
+  rig.offsetPy = sheet ? sb.offsetHeight / 2 : 0;
+}
 let dioramaUp = false, demo = null, deck = [];
 // Shuffled deck: every level shows once before any repeats, and never the same one back to back.
 function nextDemo() {
@@ -71,7 +76,7 @@ function showDiorama(i = nextDemo()) {
   const start = d.blocks.findIndex((b) => b.type === 'start');
   player.place(state.blocks[start]);
   demo = { i, tile: start, prev: -1, wait: 1.2, left: DEMO_SECONDS, graph: computeGraph(state, null) };
-  rig.offsetPx = SIDEBAR_PX / 2;
+  placeDiorama();
   rig.setLevel(world.center, world.radius * 1.15, d.angles, rig.yaw); // keep turning from where the last preview was
   rig.auto = save.settings.reducedMotion ? 2 : 7;
   world.debug.visible = false;
@@ -106,7 +111,7 @@ function startLevel(i) {
   levelIdx = i;
   dioramaUp = false;
   canvas.style.opacity = 1;
-  rig.offsetPx = 0;
+  rig.offsetPx = rig.offsetPy = 0;
   level = LEVELS[i];
   plates = (level.moving || []).map(() => false);
   pushed = {};
@@ -128,7 +133,10 @@ function startLevel(i) {
   ui.hud.banner(`${level.id}. ${level.title}`);
   if (level.id === 1) {
     hintsUsed = { turn: false, walk: false };
-    ui.hud.hints([
+    ui.hud.hints(matchMedia('(pointer: coarse)').matches ? [
+      'Drag to turn the camera.',
+      'Tap beside Pip to walk. Reach the glowing tile.',
+    ] : [
       'Hold <kbd>Right mouse</kbd> and drag, or hold <kbd>Q</kbd> / <kbd>E</kbd>, to rotate the camera.',
       'Walk with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>. Reach the glowing tile.',
     ]);
@@ -361,6 +369,20 @@ addEventListener('keydown', (e) => {
   else if (k === 'z') undo();
   else if (k === 'r') startLevel(levelIdx);
 });
+// Touch: tap beside Pip, and he steps whichever of his four ways points most toward the tap.
+rig.onTap = (x, y) => {
+  if (mode !== 'play') return;
+  const toScreen = (v) => { v.project(rig.camera); return [v.x * innerWidth, -v.y * innerHeight]; };
+  const p = player.root.position, [px, py] = toScreen(p.clone());
+  const tx = x * 2 - innerWidth - px, ty = y * 2 - innerHeight - py; // tap relative to Pip, same units
+  let best = null, bestDot = -Infinity;
+  for (const [k, d] of Object.entries(keyDirs(rig.yaw))) {
+    const [sx, sy] = toScreen(p.clone().add(new THREE.Vector3(d[0], 0, d[1])));
+    const dot = ((sx - px) * tx + (sy - py) * ty) / Math.hypot(sx - px, sy - py);
+    if (dot > bestDot) { bestDot = dot; best = k; }
+  }
+  tryMove(best);
+};
 addEventListener('keyup', (e) => rig.keyUp(e.key.toLowerCase()));
 addEventListener('pointerdown', () => audio.startAudio());
 addEventListener('blur', () => rig.stopInput());
@@ -369,6 +391,7 @@ addEventListener('resize', onResize);
 // --- loop ---
 let last = performance.now();
 function onResize() {
+  if (dioramaUp) placeDiorama();
   world.resize();
   rig.resize();
   if (rig.snapped !== null) recompute(false);
