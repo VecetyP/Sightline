@@ -27,7 +27,7 @@ export function createUI(levels, h) {
       <h2 style="text-align:center">Choose a level</h2>
       <div class="tabs"></div>
       <div class="cards"></div>
-      <div style="text-align:center;margin-top:22px"><button class="ghost" data-go="home">Back</button></div>
+      <div class="back-row"><button class="ghost" data-go="home">Back</button></div>
     </div>
   </section>
 

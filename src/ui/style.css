@@ -277,7 +277,7 @@ kbd {
 /* Phones and small windows */
 .hud-top { padding-top: max(18px, env(safe-area-inset-top)); padding-left: max(22px, env(safe-area-inset-left)); padding-right: max(22px, env(safe-area-inset-right)); }
 .compass { left: max(22px, env(safe-area-inset-left)); bottom: max(22px, env(safe-area-inset-bottom)); }
-.panel { max-height: calc(100% - 24px); overflow-y: auto; }
+@media (max-height: 640px) { .panel { max-height: calc(100% - 24px); overflow-y: auto; } #levels .panel { overflow: visible; } }
 @media (max-width: 720px), (max-height: 500px) {
   .panel { min-width: 0; padding: 22px 20px; border-radius: 22px; }
   #levels .panel { width: 94vw; }
@@ -310,3 +310,26 @@ kbd {
   .sidebar .menu .primary { grid-column: span 2; }
 }
 @media (max-width: 720px) { .sidebar .menu button:last-child { grid-column: span 2; } }
+.back-row { text-align: center; margin-top: 22px; }
+/* Short landscape screens: one row of world tabs, Back beside the title, flatter thumbnails, so it fits without scrolling. */
+@media (max-height: 640px) {
+  #levels .panel { position: relative; padding: 16px 20px; }
+  #levels h2 { font-size: 22px; margin: 0; }
+  #levels .tabs { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; scrollbar-width: none; margin: 10px 0 14px; padding-bottom: 2px; }
+  #levels .tabs button { flex: none; font-size: 12px; padding: 6px 9px; gap: 6px; }
+  #levels .tabs { justify-content: safe center; }
+  #levels .card .thumb { aspect-ratio: 16 / 9; }
+  #levels .back-row { position: absolute; top: 12px; left: 12px; margin: 0; }
+  #levels .back-row button { font-size: 15px; padding: 7px 14px; }
+}
+@media (max-height: 640px) {
+  #levels .cards { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  #levels .card { font-size: 13px; }
+}
+@media (max-height: 640px) and (max-width: 720px) {
+  #levels .tabs { gap: 4px; }
+  #levels .tabs button { font-size: 11px; padding: 6px 8px; }
+  #levels .tabs button i { display: none; }
+  #levels .card .meta { gap: 6px; padding: 0 2px; }
+  #levels .card .num { min-width: 24px; height: 24px; font-size: 13px; }
+}
