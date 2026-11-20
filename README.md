@@ -17,10 +17,10 @@ Every level adds one new idea on top of the last, and nothing tells you what it 
 </p>
 
 <p align="center">
-  <img src="docs/level03.png" alt="Level 3, Garden Stairs" width="24%">
-  <img src="docs/level07.png" alt="Level 7, Moon Gate" width="24%">
-  <img src="docs/level10.png" alt="Level 10, Rising Stacks" width="24%">
-  <img src="docs/level14.png" alt="Level 14, Night Lanterns" width="24%">
+  <img src="docs/shot-level03.png" alt="Level 3, Garden Stairs" width="24%">
+  <img src="docs/shot-level07.png" alt="Level 7, Moon Gate" width="24%">
+  <img src="docs/shot-level10.png" alt="Level 10, Rising Stacks" width="24%">
+  <img src="docs/shot-level14.png" alt="Level 14, Night Lanterns" width="24%">
 </p>
 
 ## Six worlds
@@ -37,8 +37,8 @@ Every level adds one new idea on top of the last, and nothing tells you what it 
 | **Paper Theatre** | 21–24 | Parts of the stage turn whenever the camera does. |
 
 <p align="center">
-  <img src="docs/shade.gif" alt="Sun Court: Pip pushes a block into the sunlight, its shadow falls on a mist tile, the mist turns to stone and Pip walks over it to the goal" width="45%">
-  <img src="docs/turntable.gif" alt="Paper Theatre: as the camera turns, a turntable arm swings round with it, carrying Pip across to the goal" width="45%">
+  <img src="docs/world5-shade.gif" alt="Sun Court: Pip pushes a block into the sunlight, its shadow falls on a mist tile, the mist turns to stone and Pip walks over it to the goal" width="45%">
+  <img src="docs/world6-turntable.gif" alt="Paper Theatre: as the camera turns, a turntable arm swings round with it, carrying Pip across to the goal" width="45%">
 </p>
 
 ## Controls
