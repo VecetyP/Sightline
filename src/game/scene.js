@@ -325,7 +325,7 @@ export class World {
   }
 
   get animating() {
-    return (this.groups || []).some((g) => g.userData.anim) || (this.pushAnims || []).some((a) => !a.finished);
+    return (this.groups || []).some((g) => g.userData.anim) || (this.pushAnims || []).length > 0;
   }
 
   pressPlate(id, down) {
@@ -391,6 +391,7 @@ export class World {
       if (a.ride) this.carry(g, a.ride);
       if (a.t >= 1) { g.userData.anim = null; a.done && a.done(); }
     }
+    const ended = [];
     this.pushAnims = (this.pushAnims || []).filter((a) => {
       if (a.t < 1) {
         a.t = Math.min(1, a.t + dt / 0.18);
@@ -402,10 +403,13 @@ export class World {
       a.mesh.position.lerpVectors(a.top, a.end, k);
       if (k < 1) return true;
       if (a.gone) a.mesh.visible = false;
-      a.finished = true; // so `animating` is already false inside done()
-      a.done();
+      ended.push(a);
       return false;
     });
+    // done() can start the next push (a buffered key), which adds to pushAnims: call it only after the filter
+    // has replaced the list, or that new animation would land in the old list and be lost (Pip walked through
+    // the block and fell, L12 report).
+    for (const a of ended) a.done();
     for (const mesh of this.meshes || []) {
       const m = mesh.userData.mist;
       if (!m) continue;
