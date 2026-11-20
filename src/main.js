@@ -264,6 +264,7 @@ function tryMove(key) {
 
 // No walkable neighbor that way: maybe there's a push block to shove.
 function tryPushMove(dir) {
+  illusionStep = false; // a bump or push is never drawn over the scene
   const r = tryPush(state, state.blocks[tile], dir, rig.snapped);
   if (!r) { player.bump(dir); audio.bump(); return; }
   history.push({ tile, plates: [...plates], pushed: { ...pushed }, view });
@@ -271,7 +272,6 @@ function tryPushMove(dir) {
   ui.hud.setMoves(moves, level.par);
   pushed[r.id] = r.pos;
   audio.push();
-  illusionStep = false;
   // Pip starts moving first, so an instant push (reduced motion) doesn't check the ground under Pip too early.
   if (r.step !== null) player.moveTo(state.blocks[r.step], dir, () => arrive(r.step));
   else player.bump(dir);
@@ -280,6 +280,7 @@ function tryPushMove(dir) {
 
 function arrive(to) {
   tile = to;
+  illusionStep = false; // the step is over: later bumps and falls are depth-tested again
   audio.step();
   const b = state.blocks[to];
   if (b.type === 'plate') {
