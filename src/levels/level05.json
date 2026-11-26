@@ -18,7 +18,7 @@
     {"x": 2, "y": 0, "z": -1, "type": "solid"},
     {"x": 4, "y": 0, "z": 0, "type": "solid"},
     {"x": 6, "y": 0, "z": 1, "type": "solid"},
-    {"x": 3, "y": -1, "z": 0, "type": "decor"},
+    {"x": 3, "y": -1, "z": 0, "type": "solid"},
     {"x": 2, "y": 1, "z": 0, "type": "push"},
     {"x": 6, "y": 1, "z": 1, "type": "goal"}
   ]

@@ -71,8 +71,8 @@
     {"x": 7, "y": 0, "z": -4, "type": "solid"},
     {"x": 8, "y": 0, "z": -4, "type": "solid"},
     {"x": 8, "y": 1, "z": -4, "type": "goal"},
-    {"x": 2, "y": 0, "z": -6, "type": "decor"},
-    {"x": 2, "y": 1, "z": -6, "type": "decor"},
-    {"x": 2, "y": 2, "z": -6, "type": "decor"}
+    {"x": 2, "y": 0, "z": -6, "type": "solid"},
+    {"x": 2, "y": 1, "z": -6, "type": "solid"},
+    {"x": 2, "y": 2, "z": -6, "type": "solid"}
   ]
 }

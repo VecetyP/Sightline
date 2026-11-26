@@ -101,7 +101,7 @@ export function buildState(level, plates = [], pushed = {}, opts = {}) {
   const solid = blocks.filter((b) => !b.gone);
   const occupied = new Map(solid.map((b) => [key(b.x, b.y, b.z), b]));
   // Push blocks are walkable on top: shove one into a gap and it becomes a bridge.
-  const tiles = solid.filter((b) => b.type !== 'decor' && !occupied.has(key(b.x, b.y + 1, b.z)));
+  const tiles = solid.filter((b) => !occupied.has(key(b.x, b.y + 1, b.z)));
   // A stair carries a half-height step slab on the side facing its upper tile (drawn in scene.js).
   // It is a real occluder and lifts that half of the stair's top, so visibility must see it too.
   for (const b of tiles) if (b.type === 'stair') {
@@ -112,7 +112,7 @@ export function buildState(level, plates = [], pushed = {}, opts = {}) {
   }
   // Mist (world 5) only holds where something blocks the level's light: shade is solid ground.
   // `light` points toward the light; at 45° along a grid axis every shadow covers whole tiles.
-  for (const b of solid) if (b.type === 'mist') b.shaded = !!level.light && isShaded(b, level.light, solid);
+  for (const b of solid) if (b.type === 'mist') b.shaded = !b.base.alwaysLit && !!level.light && isShaded(b, level.light, solid);
   const walk = tiles.filter((b) => b.type !== 'mist' || (b.shaded && opts.shade !== false));
   const minY = Math.min(...level.blocks.map((b) => b.y));
   return { blocks, solid, tiles: walk, occupied, minY };
@@ -159,7 +159,7 @@ export function tryPush(state, from, [dx, dz], yawDeg = null) {
   if (yawDeg !== null && spotTaken(state, b, [x, y, z], yawDeg)) return null;
   const floor = state.occupied.get(key(from.x + dx, from.y, from.z + dz));
   // ponytail: mist shade is judged before the push; a push that moves the shade itself needs a recheck after.
-  const step = floor && floor.type !== 'decor' && (floor.type !== 'mist' || floor.shaded) ? floor.id : null;
+  const step = floor && (floor.type !== 'mist' || floor.shaded) ? floor.id : null;
   let pos = null, via = null, missed = false;
   if (state.occupied.has(key(x, y - 1, z))) pos = [x, y, z];
   else if (yawDeg !== null && b.type === 'lantern') ({ pos, via, missed } = landOnScreen(state, b, [x, y, z], [from, floor], yawDeg));
@@ -231,7 +231,7 @@ function fallLooksWrong(state, b, P, pos, yawDeg, footOnly = false) {
 }
 
 // Which top is drawn straight below the falling block's base on screen? Tops of any block with nothing on
-// them count (decor too), if they are visible with the falling block itself out of the way. Tops in `skip`
+// them count (lit mist too), if they are visible with the falling block itself out of the way. Tops in `skip`
 // (where the character is, or is about to step) can't catch it. Nearest on screen wins; same spot: front-most.
 function landOnScreen(state, b, [x, y, z], skip, yawDeg) {
   const { v, r, u } = viewBasis(yawDeg);

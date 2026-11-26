@@ -109,12 +109,12 @@ export class World {
 
     level.blocks.forEach((b, id) => {
       const gi = memberOf(b);
-      const blocker = b.type === 'decor' || b.type === 'push' || b.type === 'lantern';
-      // Decor: dark all over (never walkable). Push: dark sides, walkable cream top with arrows.
+      const blocker = b.type === 'push' || b.type === 'lantern';
+      // Push: dark sides, walkable cream top with arrows.
       // Lantern: a push block with glowing gold sides; it falls onto whatever is drawn below it.
       const mist = b.type === 'mist';
       const side = b.type === 'lantern' ? LANTERN : blocker ? theme.decor : gi >= 0 ? theme.accent : theme.side;
-      const top = b.type === 'decor' ? theme.decor : theme.top;
+      const top = theme.top;
       const mesh = mist
         ? new THREE.Mesh(blockGeometry('#E8E8E8', '#FFFFFF', 0), new THREE.MeshLambertMaterial({ vertexColors: true, emissive: MIST.glow }))
         : new THREE.Mesh(blockGeometry(side, top, rnd(id) * 0.03), mat);
@@ -126,7 +126,7 @@ export class World {
       if (b.type === 'goal') this.addGoal(mesh);
       if (b.type === 'plate') this.addPlate(mesh, theme);
       if (b.type === 'stair') this.addStair(mesh, b, state, theme);
-      if (blocker) this.addDecor(mesh, theme, b.type !== 'decor', b.type === 'lantern');
+      if (blocker) this.addPushMarks(mesh, theme, b.type === 'lantern');
       if (mist) this.addMist(mesh, theme);
     });
     this.setShade(state, true);
@@ -230,8 +230,7 @@ export class World {
     mesh.add(s);
   }
 
-  addDecor(mesh, theme, pushable, lantern) {
-    // Decor (not walkable): dark block with a dot grid on top.
+  addPushMarks(mesh, theme, lantern) {
     // Push blocks: walkable top with four outward arrows.
     // Marks sit flush on the top face so occlusion still matches the walkability model.
     const m = new THREE.MeshBasicMaterial({ color: new THREE.Color(lantern ? LANTERN : theme.decor).offsetHSL(0, 0, -0.16), side: THREE.DoubleSide });
@@ -241,11 +240,6 @@ export class World {
       d.position.set(x, 0.502, z);
       mesh.add(d);
     };
-    if (!pushable) {
-      const dot = new THREE.CircleGeometry(0.06, 16);
-      for (const x of [-0.25, 0, 0.25]) for (const z of [-0.25, 0, 0.25]) flat(dot, x, z);
-      return;
-    }
     const tri = new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(0, 0.1), new THREE.Vector2(-0.1, -0.03), new THREE.Vector2(0.1, -0.03)]));
     // Shape +Y maps to world -Z after the -90° tilt; spin each arrow to point outward.
     flat(tri, 0, -0.27, 0);
